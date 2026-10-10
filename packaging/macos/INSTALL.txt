@@ -1,0 +1,28 @@
+Tiler - installation notes
+==========================
+
+Tiler is a menu bar tiling window manager. It tiles one desktop on one display at a time,
+only where you turn it on; every other display and desktop is left exactly as it is.
+
+1. Install
+   Drag "Tiler" onto the "Applications" shortcut in this window.
+   The app is signed with a Developer ID certificate and notarized by Apple, so macOS
+   opens it without a Gatekeeper warning. Requires macOS 14 or later (Apple silicon or Intel).
+   With Homebrew instead:  brew tap BikS2013/tiler && brew install --cask tiler
+
+2. First launch
+   Open Tiler from Applications. It has no Dock icon: look for the three-tile icon in the
+   menu bar. Allow Accessibility when macOS asks:
+     System Settings > Privacy & Security > Accessibility > enable Tiler
+   It is the only permission Tiler needs.
+
+3. Use
+   Ctrl-Cmd-P            tile / untile the desktop you are working on
+   Ctrl-Cmd-/            show every shortcut
+   Ctrl-Cmd-arrows       focus the neighbouring window (add Shift to swap)
+   Ctrl-Cmd-[ / ]        move the divider (add Shift for the horizontal one)
+   Drag a tile onto another to swap them; drag an edge to resize.
+   Everything can be changed in Settings (menu bar icon > Settings...).
+
+Upgrading: replace the app in Applications; the permission and settings are kept as long as
+the app stays signed with the same Developer ID.

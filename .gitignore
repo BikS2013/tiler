@@ -1,0 +1,7 @@
+.build/
+build/
+.DS_Store
+dist/
+.swiftpm/
+Project Deck/test_scripts/
+*.backup-*.html
