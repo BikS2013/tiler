@@ -148,6 +148,15 @@
 
 ## Release log
 
+- **2026-10-10 — v0.8.1 (build 18).** ⌥⌘ + drag swaps reliably and keeps the dragged window on
+  top; window lookup falls back to the window server; new windows split the active window;
+  launching apps tile at once. 32 tests passed; app and disk image `status: Accepted`,
+  `source=Notarized Developer ID`. Zip SHA-256
+  `7023cc0e14597407e1f50861fc94f00bae8c5bf80bab7e12c4090f829a028f18` (download verified), DMG
+  `f767907a20777dca1b0dd91b5a886157aa245e70ef7f0fb327ca4768cb598986`. Tap commit `tiler 0.8.1`
+  (a68bd7e); `brew audit` clean, scratch install accepted; Pages serves the 0.8.1 decks. No config
+  changes.
+
 - **2026-10-10 — v0.8.0 (build 17).** ⌥⌘M unminimizes the frontmost app's windows. 32 tests
   passed; app and disk image `status: Accepted`, `source=Notarized Developer ID`. Zip SHA-256
   `ba4658652acadb977884fcfbbdf6946763fcb2e9677e62aeb4622443dd51b924`, DMG
