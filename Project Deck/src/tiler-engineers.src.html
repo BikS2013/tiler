@@ -1,0 +1,1002 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tiler — engineering deep-dive</title>
+<style>
+:root{
+  --ink:#1B1D21; --copper:#C8623A; --copper-l:#E08A5E; --amber:#E3A64A; --black:#111316;
+  --g1:#C9CCD1; --g2:#6E7379; --paper:#F6F3EC; --white:#FFFFFF;
+  --sans:"Avenir Next","Inter","Helvetica Neue",Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--black);overflow:hidden;font-family:var(--sans)}
+#stage{position:fixed;inset:0;overflow:hidden}
+#deck{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0}
+.slide{position:absolute;left:0;top:0;width:1920px;height:1080px;overflow:hidden;display:none;background:var(--white);color:var(--ink)}
+.slide.active{display:block}
+.paper{background:var(--paper)}
+.dark{background:var(--ink);color:var(--paper)}
+.black{background:var(--black);color:var(--paper)}
+
+/* logos: each data URI defined once */
+.lg{display:block;background-repeat:no-repeat;background-size:contain;background-position:left center}
+.lg-primary{background-image:url("{{LOGO_PRIMARY}}")}
+.lg-knockout{background-image:url("{{LOGO_KNOCKOUT}}")}
+.lg-small{background-image:url("{{LOGO_SMALL}}")}
+.lg-hero{width:284px;height:56px}
+.lg-ftr{width:142px;height:28px}
+
+/* type */
+.eyebrow{position:absolute;top:70px;left:90px;font-family:var(--mono);font-size:16px;letter-spacing:2.5px;text-transform:uppercase;color:var(--copper);font-weight:600}
+.dark .eyebrow,.black .eyebrow{color:var(--copper-l)}
+.title{position:absolute;top:110px;left:90px;right:90px;font-size:56px;font-weight:300;line-height:1.05;letter-spacing:-1px;text-wrap:balance}
+.rule{position:absolute;top:290px;left:90px;width:60px;height:3px;background:var(--copper)}
+.body{position:absolute;top:340px;left:90px;right:90px}
+.lead{font-size:26px;line-height:1.4;color:rgba(27,29,33,.82)}
+.dark .lead{color:rgba(246,243,236,.78)}
+p{margin:0 0 18px}
+.small{font-size:18px;line-height:1.5;color:rgba(27,29,33,.72)}
+.dark .small{color:rgba(246,243,236,.7)}
+.mono{font-family:var(--mono)}
+.cop{color:var(--copper)}
+.dark .cop{color:var(--copper-l)}
+b,strong{font-weight:600}
+code{font-family:var(--mono);font-size:.88em;background:rgba(27,29,33,.06);padding:1px 6px;border-radius:5px}
+.dark code{background:rgba(246,243,236,.1)}
+
+/* footer */
+.ftr{position:absolute;left:54px;right:54px;bottom:36px;display:flex;align-items:center;justify-content:space-between;font-size:18px;letter-spacing:.4px;color:rgba(27,29,33,.55)}
+.ftr .l{display:flex;align-items:center;gap:18px}
+.ftr .pg{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:600}
+.dark .ftr,.black .ftr{color:rgba(246,243,236,.6)}
+
+/* components */
+.grid{display:grid;gap:40px}
+.g2{grid-template-columns:1fr 1fr}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+.card{background:var(--white);border:1px solid var(--g1);border-radius:14px;padding:30px 32px}
+.paper .card{background:var(--white)}
+.white .card,.slide:not(.paper):not(.dark) .card{background:var(--paper);border-color:rgba(27,29,33,.08)}
+.card h3{margin:0 0 12px;font-size:26px;font-weight:600;line-height:1.2}
+.card p,.card li{font-size:20px;line-height:1.5;color:rgba(27,29,33,.8)}
+.num{font-size:64px;font-weight:200;letter-spacing:-2px;line-height:1;color:var(--copper)}
+.dots{border-top:2px dotted var(--g1)}
+ul.clean{list-style:none;margin:0;padding:0}
+ul.clean li{position:relative;padding-left:26px;margin:0 0 14px;font-size:22px;line-height:1.45;color:rgba(27,29,33,.85)}
+ul.clean li:before{content:"";position:absolute;left:0;top:14px;width:12px;height:2px;background:var(--copper)}
+.dark ul.clean li{color:rgba(246,243,236,.85)}
+.dark ul.clean li:before{background:var(--copper-l)}
+pre.code{margin:0;background:var(--black);color:#E9E6DF;font-family:var(--mono);font-size:18px;line-height:1.55;padding:26px 30px;border-radius:14px;white-space:pre;overflow:hidden}
+pre.code .c{color:#8C9197}
+pre.code .k{color:#E9E6DF;font-weight:600}
+table.t{width:100%;border-collapse:collapse;font-size:20px;line-height:1.4}
+table.t th{text-align:left;font-family:var(--mono);font-size:14px;letter-spacing:2px;text-transform:uppercase;color:var(--g2);font-weight:600;padding:0 18px 14px 0;border-bottom:1px solid rgba(27,29,33,.25)}
+table.t td{padding:16px 18px 16px 0;border-bottom:1px solid rgba(27,29,33,.1);vertical-align:top;color:rgba(27,29,33,.85)}
+table.t td:first-child{font-weight:600;color:var(--ink)}
+.kv{display:flex;justify-content:space-between;align-items:baseline;padding:20px 0;border-bottom:1px solid rgba(27,29,33,.12)}
+.kv .k{font-size:22px;color:rgba(27,29,33,.7)}
+.kv .v{font-family:var(--mono);font-size:30px;font-weight:500;font-variant-numeric:tabular-nums}
+.step{display:flex;gap:22px;align-items:flex-start;margin-bottom:22px}
+.step .n{flex:0 0 46px;height:46px;border-radius:23px;border:2px solid var(--copper);color:var(--copper);font-family:var(--mono);font-weight:600;font-size:18px;display:flex;align-items:center;justify-content:center}
+.step .tx{font-size:21px;line-height:1.45;color:rgba(27,29,33,.85);padding-top:8px}
+.shot{display:block;height:auto}
+.tag{display:inline-block;font-family:var(--mono);font-size:14px;letter-spacing:1.5px;text-transform:uppercase;border:1px solid currentColor;border-radius:999px;padding:4px 12px}
+
+/* dividers */
+.dv-bar{position:absolute;left:0;top:0;bottom:0;width:12px;background:var(--copper-l)}
+.dv-num{position:absolute;top:380px;left:90px;font-size:260px;font-weight:200;line-height:1;letter-spacing:-10px;color:var(--copper-l)}
+.dv-label{position:absolute;top:410px;left:580px;right:90px;font-size:84px;font-weight:300;line-height:1;letter-spacing:-2px;color:var(--paper)}
+.dv-sub{position:absolute;top:580px;left:580px;max-width:900px;font-size:26px;line-height:1.4;color:rgba(246,243,236,.7)}
+</style>
+</head>
+<body>
+<div id="stage"><div id="deck">
+
+<!-- 1 COVER -->
+<section class="slide dark" data-name="cover">
+  <svg width="1920" height="1080" style="position:absolute;inset:0;opacity:.06" aria-hidden="true">
+    <defs><pattern id="lines" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M0 40 L40 0" stroke="#fff" stroke-width="0.5"/></pattern></defs>
+    <rect width="1920" height="1080" fill="url(#lines)"/>
+  </svg>
+  <div style="position:absolute;top:0;right:0;width:380px;height:380px;background:var(--copper)"></div>
+  <svg style="position:absolute;top:96px;right:96px" width="188" height="188" viewBox="0 0 188 188" aria-hidden="true">
+    <rect x="0" y="0" width="88" height="188" rx="10" fill="#F6F3EC"/>
+    <rect x="100" y="0" width="88" height="88" rx="10" fill="#F6F3EC" opacity=".82"/>
+    <rect x="100" y="100" width="88" height="88" rx="10" fill="#F6F3EC" opacity=".82"/>
+  </svg>
+  <div class="eyebrow" style="top:140px">Engineering deep-dive · Tiler v0.2.0</div>
+  <div style="position:absolute;top:250px;left:90px;right:480px;font-size:124px;line-height:.96;font-weight:300;letter-spacing:-2px;color:var(--paper)">
+    Tiler<br><span style="color:var(--copper-l);font-style:italic;font-weight:400">one desktop at a time.</span>
+  </div>
+  <div style="position:absolute;top:560px;left:90px;width:1050px;font-size:30px;line-height:1.4;color:rgba(246,243,236,.8)">
+    How a 2,900-line Swift menu bar app tiles macOS windows with Accessibility, SkyLight and Carbon — and touches nothing it was not asked to.
+  </div>
+  <div style="position:absolute;left:90px;right:90px;bottom:80px;display:flex;align-items:flex-end;justify-content:space-between">
+    <span class="lg lg-knockout lg-hero" role="img" aria-label="BikS2013"></span>
+    <div style="font-size:18px;letter-spacing:.4px;color:rgba(246,243,236,.7);text-align:right;line-height:1.55">
+      <div>BikS2013 · engineering talk</div>
+      <div class="mono">github.com/BikS2013/tiler · October 2026</div>
+    </div>
+  </div>
+</section>
+
+<!-- 2 AGENDA -->
+<section class="slide" data-name="agenda">
+  <div class="eyebrow">00 · Contents</div>
+  <div class="title">Five parts, from the problem to the release.</div>
+  <div class="rule"></div>
+  <div class="body" style="display:grid;grid-template-columns:1.25fr 1fr;gap:90px">
+    <div>
+      <div class="step"><div class="n">01</div><div class="tx"><b>Why and what.</b> The scope, the audience, and what was left out of HyprMac.</div></div>
+      <div class="step"><div class="n">02</div><div class="tx"><b>Architecture.</b> Components, threads, and how a desktop is identified.</div></div>
+      <div class="step"><div class="n">03</div><div class="tx"><b>Events and layout.</b> Reconcile, frame writes, drags, the BSP tree.</div></div>
+      <div class="step"><div class="n">04</div><div class="tx"><b>Input, focus and UI.</b> macOS 14 focus, Carbon hotkeys, config, Settings.</div></div>
+      <div class="step"><div class="n">05</div><div class="tx"><b>Quality and shipping.</b> Performance, tests, bugs, limits, release pipeline.</div></div>
+    </div>
+    <div class="card" style="align-self:start">
+      <div class="mono" style="font-size:14px;letter-spacing:2px;color:var(--g2);text-transform:uppercase;margin-bottom:14px">At a glance</div>
+      <div class="kv" style="padding:14px 0"><span class="k">Language</span><span class="v" style="font-size:24px">Swift 5.10</span></div>
+      <div class="kv" style="padding:14px 0"><span class="k">Build</span><span class="v" style="font-size:24px">SwiftPM</span></div>
+      <div class="kv" style="padding:14px 0"><span class="k">Runs on</span><span class="v" style="font-size:24px">macOS 14+</span></div>
+      <div class="kv" style="padding:14px 0"><span class="k">Binary</span><span class="v" style="font-size:24px">universal</span></div>
+      <div class="kv" style="padding:14px 0;border:0"><span class="k">Dependencies</span><span class="v" style="font-size:24px">none</span></div>
+    </div>
+  </div>
+  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">02</span></div>
+</section>
+
+<!-- 3 SCOPE -->
+<section class="slide paper" data-name="scope">
+  <div class="eyebrow">01 · Scope</div>
+  <div class="title">Tile one desktop. Touch nothing else.</div>
+  <div class="rule"></div>
+  <div class="body grid g2" style="gap:70px">
+    <div>
+      <p class="lead">Tiler does HyprMac's core job — Hyprland-style BSP “dwindle” tiling with keyboard focus, swap and resize — but only on the desktops the user turns on, one at a time.</p>
+      <p class="lead" style="margin-bottom:26px">A desktop is one Space on one display. Space ids change at login; the Space uuid does not, so that is the key that persists.</p>
+<pre class="code"><span class="c">// Desktop.swift</span>
+<span class="k">struct</span> DesktopKey: Codable, Hashable {
+    <span class="k">let</span> displayUUID: String
+    <span class="k">let</span> spaceUUID: String
+}</pre>
+    </div>
+    <div class="card">
+      <h3>The hard rules</h3>
+      <ul class="clean" style="margin-top:18px">
+        <li>Never touch a window outside a tiled desktop's display <b>and</b> Space.</li>
+        <li>No polling, no <code>CGEventTap</code>: react to AX and NSWorkspace events.</li>
+        <li>Every AX call for an app runs on that app's own thread.</li>
+        <li>Act on moved/resized notifications only while the mouse is down.</li>
+        <li>Every config key is required; no silent defaults.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">03</span></div>
+</section>
+
+<!-- 4 AUDIENCE -->
+<section class="slide" data-name="audience">
+  <div class="eyebrow">01 · Audience</div>
+  <div class="title">Who Tiler is for — and who it is not for.</div>
+  <div class="rule"></div>
+  <div class="body grid g3">
+    <div class="card">
+      <div class="num">01</div>
+      <h3 style="margin-top:22px">Mac power users</h3>
+      <p>Several displays, several Spaces, a keyboard-first habit. They want tiling on the coding desktop and free windows on the mail desktop.</p>
+    </div>
+    <div class="card">
+      <div class="num">02</div>
+      <h3 style="margin-top:22px">Engineers</h3>
+      <p>People who want to read, audit or extend a window manager. 2,900 lines, no dependencies, one design document, 22 unit tests.</p>
+    </div>
+    <div class="card">
+      <div class="num">03</div>
+      <h3 style="margin-top:22px">Not the target</h3>
+      <p>Anyone who wants virtual workspaces, per-app rules engines or a scripting language. yabai and AeroSpace cover those.</p>
+    </div>
+  </div>
+  <div style="position:absolute;left:90px;right:90px;top:840px" class="small">This deck is for engineers. A separate deck walks users through installing and using Tiler.</div>
+  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">04</span></div>
+</section>
+
+<!-- 5 HYPRMAC -->
+<section class="slide" data-name="hyprmac">
+  <div class="eyebrow">01 · Origins</div>
+  <div class="title">What was left out of HyprMac, and why.</div>
+  <div class="rule"></div>
+  <div class="body">
+    <table class="t">
+      <tr><th style="width:23%">HyprMac feature</th><th style="width:44%">Why Tiler drops it</th><th>Tiler instead</th></tr>
+      <tr><td>Ten virtual workspaces, windows hidden in a screen corner</td><td>Conflicts with “touch only this desktop”. The hide-corner, parking and ghost-window logic was the largest bug source.</td><td>Native Spaces; each desktop keeps its own tree.</td></tr>
+      <tr><td>Caps Lock “Hypr” key via an active <code>CGEventTap</code></td><td>An active tap delays every keystroke system-wide when its thread stalls.</td><td>Carbon <code>RegisterEventHotKey</code>: no permission, only its own keys.</td></tr>
+      <tr><td>1 Hz polling and frame verification loops</td><td>Constant work and fights with apps that refuse a size.</td><td>AX notifications and a ~1 ms reconcile.</td></tr>
+      <tr><td>Borders, dimming, scratchpad, overview</td><td>Outside the core job; each costs WindowServer time.</td><td>Not built.</td></tr>
+    </table>
+  </div>
+  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">05</span></div>
+</section>
+
+<!-- 6 SIZE STAT -->
+<section class="slide paper" data-name="size">
+  <div class="eyebrow">01 · Size</div>
+  <div class="title">Small enough to read in an afternoon.</div>
+  <div class="rule"></div>
+  <div class="body" style="display:grid;grid-template-columns:1.25fr 1fr;gap:90px;align-items:start">
+    <div>
+      <div style="font-size:240px;font-weight:200;letter-spacing:-10px;line-height:.9"><span class="cop">2,900</span></div>
+      <div style="margin-top:30px;font-size:28px;line-height:1.35;max-width:760px">lines of Swift, Settings and the shortcuts overlay included — against about <b>35,000</b> in HyprMac.</div>
+    </div>
+    <div style="padding-top:20px">
+      <div class="kv"><span class="k">Third-party dependencies</span><span class="v">0</span></div>
+      <div class="kv"><span class="k">CPU while idle</span><span class="v">0 %</span></div>
+      <div class="kv"><span class="k">One reconcile pass</span><span class="v">≈1 ms</span></div>
+      <div class="kv"><span class="k">Unit tests (XCTest)</span><span class="v">22</span></div>
+      <div class="kv"><span class="k">Private symbols used</span><span class="v">9</span></div>
+    </div>
+  </div>
+  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">06</span></div>
+</section>
+
+<!-- 7 DIVIDER ARCHITECTURE -->
+<section class="slide dark" data-name="divider-architecture">
+  <div class="dv-bar"></div>
+  <div class="dv-num">02</div>
+  <div class="dv-label">Architecture.</div>
+  <div class="dv-sub">One main-thread controller decides; one thread per app talks to that app. A pure library holds everything that can be unit-tested.</div>
+  <div class="ftr"><div class="l"><span class="lg lg-knockout lg-ftr" role="img" aria-label="BikS2013"></span><span>Section 02</span></div><span class="pg">07</span></div>
+</section>
+
+<!-- 8 ARCHITECTURE DIAGRAM -->
+<section class="slide" data-name="architecture">
+  <div class="eyebrow">02 · Components</div>
+  <div class="title">The whole app on one page.</div>
+  <div class="rule"></div>
+  <svg style="position:absolute;left:90px;top:320px" width="1740" height="620" viewBox="0 0 1740 620" font-family="Avenir Next, Inter, Helvetica Neue, Arial, sans-serif" aria-label="Architecture diagram">
+    <defs><marker id="ar" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#6E7379"/></marker></defs>
+    <!-- UI row -->
+    <text x="0" y="16" font-size="14" letter-spacing="2" fill="#6E7379" font-family="ui-monospace, SF Mono, Menlo, monospace">MAIN THREAD · UI</text>
+    <g font-size="20">
+      <rect x="0" y="34" width="250" height="84" rx="12" fill="#F6F3EC" stroke="#C9CCD1"/>
+      <text x="125" y="70" text-anchor="middle" font-weight="600" fill="#1B1D21">AppDelegate</text>
+      <text x="125" y="96" text-anchor="middle" font-size="16" fill="#6E7379">main.swift · main menu</text>
+      <rect x="290" y="34" width="250" height="84" rx="12" fill="#F6F3EC" stroke="#C9CCD1"/>
+      <text x="415" y="70" text-anchor="middle" font-weight="600" fill="#1B1D21">StatusMenu</text>
+      <text x="415" y="96" text-anchor="middle" font-size="16" fill="#6E7379">NSStatusItem</text>
+      <rect x="580" y="34" width="290" height="84" rx="12" fill="#F6F3EC" stroke="#C9CCD1"/>
+      <text x="725" y="70" text-anchor="middle" font-weight="600" fill="#1B1D21">ShortcutsOverlay</text>
+      <text x="725" y="96" text-anchor="middle" font-size="16" fill="#6E7379">non-activating NSPanel</text>
+      <rect x="910" y="34" width="420" height="84" rx="12" fill="#F6F3EC" stroke="#C9CCD1"/>
+      <text x="1120" y="70" text-anchor="middle" font-weight="600" fill="#1B1D21">SettingsWindowController</text>
+      <text x="1120" y="96" text-anchor="middle" font-size="16" fill="#6E7379">SettingsModel · SwiftUI panes</text>
+    </g>
+    <!-- controller -->
+    <rect x="0" y="200" width="1330" height="100" rx="14" fill="#1B1D21"/>
+    <text x="40" y="244" font-size="26" font-weight="600" fill="#F6F3EC">Controller</text>
+    <text x="40" y="276" font-size="18" fill="#C9CCD1">state · events · reconcile · layout decisions · hotkey actions · drags · config save</text>
+    <g stroke="#6E7379" stroke-width="2" marker-end="url(#ar)">
+      <line x1="125" y1="118" x2="125" y2="196"/><line x1="415" y1="118" x2="415" y2="196"/>
+      <line x1="725" y1="118" x2="725" y2="196"/><line x1="1120" y1="118" x2="1120" y2="196"/>
+    </g>
+    <!-- lower row -->
+    <text x="0" y="540" font-size="14" letter-spacing="2" fill="#6E7379" font-family="ui-monospace, SF Mono, Menlo, monospace">OWNED BY THE CONTROLLER</text>
+    <g font-size="20">
+      <rect x="0" y="382" width="300" height="118" rx="12" fill="#FFFFFF" stroke="#1B1D21" stroke-width="1.5"/>
+      <text x="150" y="420" text-anchor="middle" font-weight="600" fill="#1B1D21">Desktop[DesktopKey]</text>
+      <text x="150" y="448" text-anchor="middle" font-size="16" fill="#6E7379">BSPTree · floating set</text>
+      <text x="150" y="472" text-anchor="middle" font-size="16" fill="#6E7379">last applied frames</text>
+      <rect x="352" y="394" width="320" height="118" rx="12" fill="#F6F3EC" stroke="#C8623A" stroke-width="1" opacity=".7"/>
+      <rect x="340" y="382" width="320" height="118" rx="12" fill="#FFFFFF" stroke="#C8623A" stroke-width="2.5"/>
+      <text x="500" y="420" text-anchor="middle" font-weight="600" fill="#1B1D21">AppHandle[pid] × N</text>
+      <text x="500" y="448" text-anchor="middle" font-size="16" fill="#6E7379">own thread + run loop</text>
+      <text x="500" y="472" text-anchor="middle" font-size="16" fill="#6E7379">AXObserver · reads · writes</text>
+      <rect x="712" y="382" width="280" height="118" rx="12" fill="#FFFFFF" stroke="#1B1D21" stroke-width="1.5"/>
+      <text x="852" y="420" text-anchor="middle" font-weight="600" fill="#1B1D21">Hotkeys</text>
+      <text x="852" y="448" text-anchor="middle" font-size="16" fill="#6E7379">Carbon RegisterEventHotKey</text>
+      <text x="852" y="472" text-anchor="middle" font-size="16" fill="#6E7379">per-focus registration</text>
+      <rect x="1032" y="382" width="298" height="118" rx="12" fill="#FFFFFF" stroke="#1B1D21" stroke-width="1.5"/>
+      <text x="1181" y="420" text-anchor="middle" font-weight="600" fill="#1B1D21">Spaces · Screen</text>
+      <text x="1181" y="448" text-anchor="middle" font-size="16" fill="#6E7379">SkyLight + NSScreen</text>
+      <text x="1181" y="472" text-anchor="middle" font-size="16" fill="#6E7379">read-only lookups</text>
+    </g>
+    <g stroke="#6E7379" stroke-width="2" marker-end="url(#ar)">
+      <line x1="150" y1="300" x2="150" y2="378"/><line x1="500" y1="300" x2="500" y2="378"/>
+      <line x1="852" y1="300" x2="852" y2="378"/><line x1="1181" y1="300" x2="1181" y2="378"/>
+    </g>
+    <!-- external -->
+    <rect x="340" y="560" width="332" height="56" rx="10" fill="none" stroke="#6E7379" stroke-dasharray="6 6"/>
+    <text x="506" y="595" text-anchor="middle" font-size="18" fill="#6E7379">other apps' windows (AX)</text>
+    <line x1="506" y1="512" x2="506" y2="556" stroke="#6E7379" stroke-width="2" marker-end="url(#ar)"/>
+    <rect x="1032" y="560" width="298" height="56" rx="10" fill="none" stroke="#6E7379" stroke-dasharray="6 6"/>
+    <text x="1181" y="595" text-anchor="middle" font-size="18" fill="#6E7379">WindowServer</text>
+    <line x1="1181" y1="500" x2="1181" y2="556" stroke="#6E7379" stroke-width="2" marker-end="url(#ar)"/>
+    <!-- core lib -->
+    <rect x="1400" y="34" width="340" height="582" rx="14" fill="#F6F3EC" stroke="#1B1D21" stroke-dasharray="4 6" stroke-width="1.5"/>
+    <text x="1430" y="80" font-size="24" font-weight="600" fill="#1B1D21">TilerCore</text>
+    <text x="1430" y="108" font-size="16" fill="#6E7379">pure Swift · no AppKit · no AX</text>
+    <g font-size="20" fill="#1B1D21">
+      <text x="1430" y="176">BSPTree</text><text x="1430" y="200" font-size="16" fill="#6E7379">dwindle layout, edits</text>
+      <text x="1430" y="256">Geometry</text><text x="1430" y="280" font-size="16" fill="#6E7379">neighbours, hit tests</text>
+      <text x="1430" y="336">Config</text><text x="1430" y="360" font-size="16" fill="#6E7379">strict parse, json()</text>
+      <text x="1430" y="416">KeyCombo · Action</text><text x="1430" y="440" font-size="16" fill="#6E7379">symbols, titles, groups</text>
+    </g>
+    <text x="1430" y="580" font-size="16" fill="#C8623A" font-family="ui-monospace, SF Mono, Menlo, monospace">22 XCTest tests</text>
+  </svg>
+  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">08</span></div>
+</section>
+
+<!-- 9 THREADS -->
+<section class="slide paper" data-name="threads">
+  <div class="eyebrow">02 · Threads</div>
+  <div class="title">The main thread decides. App threads talk to apps.</div>
+  <div class="rule"></div>
+  <div class="body" style="display:grid;grid-template-columns:1fr 1fr;gap:60px">
+    <div>
+      <div class="card" style="margin-bottom:24px;padding:24px 30px">
+        <h3>Main thread</h3>
+        <p style="margin:0">Controller, menu, Settings, overlay, Carbon hotkey events, NSWorkspace notifications. Owns all state; never makes an AX call.</p>
+      </div>
+      <div class="card" style="margin-bottom:24px;padding:24px 30px">
+        <h3>One <code>RunLoopThread</code> per app</h3>
+        <p style="margin:0">AXObserver source, window reads and writes. A hung app stalls only its own thread — and at most 1 s per call.</p>
+      </div>
+      <div class="card" style="padding:24px 30px">
+        <h3>Nothing tiled, nothing running</h3>
+        <p style="margin:0">Handles exist only while a desktop is tiled. Turning the last one off took the process from 20 threads to 8.</p>
+      </div>
+    </div>
+    <div>
+<pre class="code"><span class="c">// AppHandle.swift — work hops to the app's thread</span>
+<span class="k">func</span> perform(_ block: @escaping () -> Void) {
+    <span class="k">guard let</span> runLoop <span class="k">else</span> { <span class="k">return</span> }
+    CFRunLoopPerformBlock(runLoop,
+        CFRunLoopMode.defaultMode.rawValue, block)
+    CFRunLoopWakeUp(runLoop)
+}
+
+<span class="c">// results come back on main</span>
+<span class="k">func</span> resolve(_ ids: Set&lt;CGWindowID&gt;,
+             completion: @escaping (Facts) -> Void) {
+    thread.perform { [self] <span class="k">in</span>
+        refreshElements()
+        <span class="k">let</span> facts = ... isTileable(el) ...
+        DispatchQueue.main.async { completion(facts) }
+    }
+}</pre>
+    </div>
+  </div>
+  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">09</span></div>
+</section>
+
+<!-- 10 SPACES -->
+<section class="slide" data-name="spaces">
+  <div class="eyebrow">02 · Desktop identity</div>
+  <div class="title">Which Space is showing, and which windows are on it.</div>
+  <div class="rule"></div>
+  <div class="body" style="display:grid;grid-template-columns:1.1fr 1fr;gap:60px">
+    <table class="t">
+      <tr><th style="width:52%">SkyLight call</th><th>Used for</th></tr>
+      <tr><td class="mono" style="font-size:18px">CGSCopyManagedDisplaySpaces</td><td>Every Space with id, uuid and type; desktop numbers. Run at launch, on toggle and when Spaces change (~1–15 ms).</td></tr>
+      <tr><td class="mono" style="font-size:18px">SLSManagedDisplayGetCurrentSpace</td><td>The Space a display shows now. Tens of µs, so never cached.</td></tr>
+      <tr><td class="mono" style="font-size:18px">SLSCopySpacesForWindows</td><td>The Spaces a window belongs to (mask <code>0x7</code>).</td></tr>
+      <tr><td class="mono" style="font-size:18px">SLSManagedDisplayIsAnimating</td><td>Skip reconcile mid-switch, when the list mixes two desktops.</td></tr>
+    </table>
+    <div>
+<pre class="code"><span class="c">// Spaces.swift</span>
+<span class="k">static func</span> current(onDisplay uuid: String)
+        -> SpaceID {
+    <span class="k">let</span> id = SLSManagedDisplayGetCurrentSpace(
+        connection, uuid <span class="k">as</span> CFString)
+    <span class="c">// "Displays have separate Spaces" off:</span>
+    <span class="c">// every display shows the "Main" Space</span>
+    <span class="k">return</span> id != 0 ? id
+        : SLSManagedDisplayGetCurrentSpace(
+            connection, "Main" <span class="k">as</span> CFString)
+}</pre>
+      <p class="small" style="margin-top:22px">A desktop is <b>visible</b> when its display's current Space equals its stored Space id. Ids are re-resolved from the uuid at launch and on display changes; a desktop deleted in Mission Control is forgotten.</p>
+    </div>
+  </div>
+  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">10</span></div>
+</section>
+
+<!-- 11 DIVIDER EVENTS -->
+<section class="slide dark" data-name="divider-events">
+  <div class="dv-bar"></div>
+  <div class="dv-num">03</div>
+  <div class="dv-label">Events and layout.</div>
+  <div class="dv-sub">No polling: every change starts from a notification, is folded into one reconcile pass, and ends in the fewest possible frame writes.</div>
+  <div class="ftr"><div class="l"><span class="lg lg-knockout lg-ftr" role="img" aria-label="BikS2013"></span><span>Section 03</span></div><span class="pg">11</span></div>
+</section>
+
+<!-- 12 EVENT FLOW -->
+<section class="slide" data-name="event-flow">
+  <div class="eyebrow">03 · Event flow</div>
+  <div class="title">From a notification to a written frame.</div>
+  <div class="rule"></div>
+  <svg style="position:absolute;left:90px;top:330px" width="1740" height="420" viewBox="0 0 1740 420" font-family="Avenir Next, Inter, Helvetica Neue, Arial, sans-serif" aria-label="Event flow">
+    <defs><marker id="ar2" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#6E7379"/></marker></defs>
+    <g font-size="18" fill="#1B1D21">
+      <rect x="0" y="0" width="360" height="190" rx="12" fill="#F6F3EC" stroke="#C9CCD1"/>
+      <text x="24" y="38" font-size="20" font-weight="600">AX (per app thread)</text>
+      <text x="24" y="72">WindowCreated · Destroyed</text>
+      <text x="24" y="100">FocusedWindowChanged</text>
+      <text x="24" y="128">Moved · Resized · Miniaturized</text>
+      <text x="24" y="166" font-size="16" fill="#6E7379">hop to main as a small enum</text>
+      <rect x="0" y="226" width="360" height="190" rx="12" fill="#F6F3EC" stroke="#C9CCD1"/>
+      <text x="24" y="264" font-size="20" font-weight="600">NSWorkspace / AppKit</text>
+      <text x="24" y="298">launch · terminate · hide · activate</text>
+      <text x="24" y="326">active Space · active display</text>
+      <text x="24" y="354">screen parameters changed</text>
+      <text x="24" y="392" font-size="16" fill="#6E7379">already on main</text>
+    </g>
+    <g stroke="#6E7379" stroke-width="2" marker-end="url(#ar2)"><line x1="360" y1="95" x2="470" y2="190"/><line x1="360" y1="321" x2="470" y2="226"/></g>
+    <rect x="480" y="140" width="290" height="136" rx="12" fill="#FFFFFF" stroke="#1B1D21" stroke-width="1.5"/>
+    <text x="625" y="190" text-anchor="middle" font-size="22" font-weight="600" fill="#1B1D21">scheduleReconcile</text>
+    <text x="625" y="222" text-anchor="middle" font-size="17" fill="#6E7379">coalesced: one pass</text>
+    <text x="625" y="248" text-anchor="middle" font-size="17" fill="#6E7379">per 20 ms burst</text>
+    <line x1="770" y1="208" x2="850" y2="208" stroke="#6E7379" stroke-width="2" marker-end="url(#ar2)"/>
+    <rect x="860" y="120" width="300" height="176" rx="12" fill="#1B1D21"/>
+    <text x="1010" y="176" text-anchor="middle" font-size="24" font-weight="600" fill="#F6F3EC">reconcile()</text>
+    <text x="1010" y="210" text-anchor="middle" font-size="17" fill="#C9CCD1">one CGWindowList call</text>
+    <text x="1010" y="236" text-anchor="middle" font-size="17" fill="#C9CCD1">diff tree vs. windows</text>
+    <text x="1010" y="268" text-anchor="middle" font-size="17" fill="#E08A5E">≈ 1 ms</text>
+    <line x1="1160" y1="208" x2="1240" y2="208" stroke="#6E7379" stroke-width="2" marker-end="url(#ar2)"/>
+    <rect x="1250" y="140" width="220" height="136" rx="12" fill="#FFFFFF" stroke="#1B1D21" stroke-width="1.5"/>
+    <text x="1360" y="196" text-anchor="middle" font-size="22" font-weight="600" fill="#1B1D21">layout(d)</text>
+    <text x="1360" y="228" text-anchor="middle" font-size="17" fill="#6E7379">only changed</text>
+    <text x="1360" y="252" text-anchor="middle" font-size="17" fill="#6E7379">frames</text>
+    <line x1="1470" y1="208" x2="1540" y2="208" stroke="#6E7379" stroke-width="2" marker-end="url(#ar2)"/>
+    <rect x="1550" y="140" width="190" height="136" rx="12" fill="#FFFFFF" stroke="#C8623A" stroke-width="2.5"/>
+    <text x="1645" y="196" text-anchor="middle" font-size="22" font-weight="600" fill="#1B1D21">setFrame</text>
+    <text x="1645" y="228" text-anchor="middle" font-size="17" fill="#6E7379">app thread,</text>
+    <text x="1645" y="252" text-anchor="middle" font-size="17" fill="#6E7379">newest wins</text>
+    <path d="M1010 296 C1010 380 625 380 625 280" fill="none" stroke="#6E7379" stroke-width="1.5" stroke-dasharray="5 6" marker-end="url(#ar2)"/>
+    <text x="820" y="392" text-anchor="middle" font-size="16" fill="#6E7379">unknown windows resolved async on their app's thread, then reconcile again</text>
+  </svg>
+  <div style="position:absolute;left:90px;right:90px;top:800px" class="small">Created windows trigger extra passes at +0.15 s and +0.5 s (some apps show the window late); a window moved by a script gets one at +0.4 s (its Space updates late); an untileable window is re-checked once after 0.6 s.</div>
+  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">12</span></div>
+</section>
+
+<!-- 13 RECONCILE -->
+<section class="slide paper" data-name="reconcile">
+  <div class="eyebrow">03 · Reconcile</div>
+  <div class="title">Six steps, about a millisecond.</div>
+  <div class="rule"></div>
+  <div class="body" style="display:grid;grid-template-columns:1.25fr 1fr;gap:70px">
+    <div>
+      <div class="step"><div class="n">1</div><div class="tx">Skip unless a tiled desktop is visible; wait while its display is animating a Space switch.</div></div>
+      <div class="step"><div class="n">2</div><div class="tx">One <code>CGWindowListCopyWindowInfo(onScreenOnly)</code>; keep layer-0 windows of other apps with alpha &gt; 0.</div></div>
+      <div class="step"><div class="n">3</div><div class="tx">Per visible desktop: centre on its display <b>and</b> its Space in <code>SLSCopySpacesForWindows</code>.</div></div>
+      <div class="step"><div class="n">4</div><div class="tx">Re-check the Space did not change during the read; if it did, the next event redoes it.</div></div>
+      <div class="step"><div class="n">5</div><div class="tx">Remove vanished and always-float windows; insert new tileable ones next to the last focused tile.</div></div>
+      <div class="step"><div class="n">6</div><div class="tx">Lay out only if something changed, and write only frames that differ from the last one written.</div></div>
+    </div>
+    <div class="card" style="align-self:start">
+      <h3>When is a window tileable?</h3>
+      <ul class="clean" style="margin-top:16px">
+        <li>role <code>AXWindow</code>, subrole <code>AXStandardWindow</code></li>
+        <li>not minimised, not full screen</li>
+        <li>an <b>enabled</b> green button (dialogs and settings panes have none)</li>
+        <li><code>AXSize</code> is settable</li>
+        <li>app not in <code>floatingApps</code></li>
+      </ul>
+      <p class="small" style="margin:6px 0 0">Everything else floats and is never moved.</p>
+    </div>
+  </div>
+  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">13</span></div>
+</section>
+
+<!-- 14 WRITING FRAMES -->
+<section class="slide" data-name="frames">
+  <div class="eyebrow">03 · Writing frames</div>
+  <div class="title">Write the newest frame only, in an order apps accept.</div>
+  <div class="rule"></div>
+  <div class="body" style="display:grid;grid-template-columns:1fr 1.1fr;gap:60px">
+    <div>
+      <ul class="clean">
+        <li><b>Coalesced.</b> <code>setFrame</code> stores the newest frame per window and schedules one flush. A slow app (iTerm2 took up to 700 ms) never replays stale layouts.</li>
+        <li><b>Size → position → size.</b> The first resize cannot clamp the move at a screen edge; the second fixes a resize clamped by the old position.</li>
+        <li><b><code>AXEnhancedUserInterface</code></b> is switched off for the writes, or the app animates every resize.</li>
+        <li><b>Bounded.</b> <code>AXUIElementSetMessagingTimeout</code> = 1 s, system-wide and per element.</li>
+      </ul>
+    </div>
+<pre class="code" style="align-self:start"><span class="c">// AppHandle.swift — on the app's thread</span>
+<span class="k">private func</span> flushFrames() {
+    lock.lock()
+    <span class="k">let</span> frames = pendingFrames
+    pendingFrames.removeAll()
+    flushScheduled = <span class="k">false</span>
+    lock.unlock()
+    <span class="k">let</span> enhanced = bool(app,
+        "AXEnhancedUserInterface") == <span class="k">true</span>
+    <span class="k">if</span> enhanced { set(app, ..., <span class="k">false</span>) }
+    <span class="k">defer</span> { <span class="k">if</span> enhanced { set(app, ..., <span class="k">true</span>) } }
+    <span class="k">for</span> (id, frame) <span class="k">in</span> frames {
+        <span class="k">guard let</span> el = elements[id] <span class="k">else</span> { <span class="k">continue</span> }
+        setSize(el, frame.size)
+        setPosition(el, frame.origin)
+        setSize(el, frame.size)
+    }
+}</pre>
+  </div>
+  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">14</span></div>
+</section>
+
+<!-- 15 FEEDBACK LOOP -->
+<section class="slide paper" data-name="feedback-loop">
+  <div class="eyebrow">03 · Feedback-loop rule</div>
+  <div class="title">React to window moves only while the mouse button is down.</div>
+  <div class="rule"></div>
+  <div class="body" style="display:grid;grid-template-columns:1fr 1.25fr;gap:70px">
+    <div>
+      <p class="lead">Tiler's own writes produce moved/resized notifications too. So do apps that refuse a size or snap themselves. Acting on those would start a fight.</p>
+      <p class="lead">The rule: with no mouse button down, a move of a tiled window is ignored. With the button down it is a user drag, handled once on release.</p>
+    </div>
+    <svg width="880" height="520" viewBox="0 0 880 520" font-family="Avenir Next, Inter, Helvetica Neue, Arial, sans-serif" aria-label="Drag end decision">
+      <defs><marker id="ar3" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#6E7379"/></marker></defs>
+      <rect x="290" y="0" width="300" height="70" rx="35" fill="#1B1D21"/>
+      <text x="440" y="43" text-anchor="middle" font-size="21" font-weight="600" fill="#F6F3EC">mouse released</text>
+      <line x1="440" y1="70" x2="440" y2="112" stroke="#6E7379" stroke-width="2" marker-end="url(#ar3)"/>
+      <rect x="250" y="116" width="380" height="64" rx="10" fill="#FFFFFF" stroke="#C9CCD1"/>
+      <text x="440" y="155" text-anchor="middle" font-size="19" fill="#1B1D21">read the window's frame (app thread)</text>
+      <g stroke="#6E7379" stroke-width="2" marker-end="url(#ar3)">
+        <line x1="440" y1="180" x2="130" y2="270"/><line x1="440" y1="180" x2="440" y2="270"/><line x1="440" y1="180" x2="750" y2="270"/>
+      </g>
+      <g font-size="18" fill="#1B1D21">
+        <rect x="0" y="274" width="260" height="110" rx="12" fill="#FFFFFF" stroke="#C8623A" stroke-width="2.5"/>
+        <text x="130" y="312" text-anchor="middle" font-weight="600">size changed &gt; 2 pt</text>
+        <text x="130" y="344" text-anchor="middle" fill="#6E7379">adoptResize: the dragged</text>
+        <text x="130" y="368" text-anchor="middle" fill="#6E7379">edges set split ratios</text>
+        <rect x="310" y="274" width="260" height="110" rx="12" fill="#FFFFFF" stroke="#1B1D21" stroke-width="1.5"/>
+        <text x="440" y="312" text-anchor="middle" font-weight="600">dropped on a tile</text>
+        <text x="440" y="344" text-anchor="middle" fill="#6E7379">swap the two windows</text>
+        <text x="440" y="368" text-anchor="middle" fill="#6E7379">in the tree</text>
+        <rect x="620" y="274" width="260" height="110" rx="12" fill="#FFFFFF" stroke="#1B1D21" stroke-width="1.5"/>
+        <text x="750" y="312" text-anchor="middle" font-weight="600">anything else</text>
+        <text x="750" y="344" text-anchor="middle" fill="#6E7379">snap back — or let go</text>
+        <text x="750" y="368" text-anchor="middle" fill="#6E7379">if on another display</text>
+      </g>
+      <g stroke="#6E7379" stroke-width="2" marker-end="url(#ar3)"><line x1="130" y1="384" x2="400" y2="446"/><line x1="440" y1="384" x2="440" y2="446"/><line x1="750" y1="384" x2="480" y2="446"/></g>
+      <rect x="290" y="450" width="300" height="64" rx="10" fill="#F6F3EC" stroke="#C9CCD1"/>
+      <text x="440" y="489" text-anchor="middle" font-size="19" fill="#1B1D21">layout(d) — one write pass</text>
+    </svg>
+  </div>
+  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">15</span></div>
+</section>
+
+<!-- 16 BSP TREE -->
+<section class="slide" data-name="bsp-tree">
+  <div class="eyebrow">03 · Layout</div>
+  <div class="title">A binary space partition, dwindle style.</div>
+  <div class="rule"></div>
+  <div class="body" style="display:grid;grid-template-columns:1fr 1fr;gap:70px">
+    <div>
+      <svg width="800" height="300" viewBox="0 0 800 300" font-family="Avenir Next, Inter, Helvetica Neue, Arial, sans-serif" aria-label="BSP tree and its layout">
+        <g stroke="#6E7379" stroke-width="2">
+          <line x1="150" y1="40" x2="70" y2="130"/><line x1="150" y1="40" x2="230" y2="130"/>
+          <line x1="230" y1="130" x2="170" y2="220"/><line x1="230" y1="130" x2="290" y2="220"/>
+        </g>
+        <circle cx="150" cy="40" r="30" fill="#1B1D21"/><text x="150" y="47" text-anchor="middle" font-size="18" fill="#F6F3EC">H .5</text>
+        <rect x="40" y="110" width="60" height="44" rx="8" fill="#F6F3EC" stroke="#1B1D21"/><text x="70" y="139" text-anchor="middle" font-size="20" fill="#1B1D21">1</text>
+        <circle cx="230" cy="130" r="30" fill="#1B1D21"/><text x="230" y="137" text-anchor="middle" font-size="18" fill="#F6F3EC">V .5</text>
+        <rect x="140" y="200" width="60" height="44" rx="8" fill="#F6F3EC" stroke="#1B1D21"/><text x="170" y="229" text-anchor="middle" font-size="20" fill="#1B1D21">2</text>
+        <rect x="260" y="200" width="60" height="44" rx="8" fill="#FFFFFF" stroke="#C8623A" stroke-width="2.5"/><text x="290" y="229" text-anchor="middle" font-size="20" fill="#1B1D21">3</text>
+        <text x="150" y="292" text-anchor="middle" font-size="16" fill="#6E7379">splits hold orientation + ratio</text>
+        <rect x="430" y="20" width="340" height="230" rx="10" fill="none" stroke="#C9CCD1"/>
+        <rect x="440" y="30" width="155" height="210" rx="6" fill="#F6F3EC" stroke="#1B1D21"/><text x="517" y="141" text-anchor="middle" font-size="26" fill="#1B1D21">1</text>
+        <rect x="605" y="30" width="155" height="100" rx="6" fill="#F6F3EC" stroke="#1B1D21"/><text x="682" y="87" text-anchor="middle" font-size="26" fill="#1B1D21">2</text>
+        <rect x="605" y="140" width="155" height="100" rx="6" fill="#FFFFFF" stroke="#C8623A" stroke-width="2.5"/><text x="682" y="197" text-anchor="middle" font-size="26" fill="#1B1D21">3</text>
+        <text x="600" y="292" text-anchor="middle" font-size="16" fill="#6E7379">window 3 split the taller tile 2</text>
+      </svg>
+      <p class="small" style="margin-top:24px">A new window splits the last focused tile along its <b>longer</b> side and takes the second half. Ratios are clamped to 0.1–0.9; frames are rounded to whole points so neighbours never overlap.</p>
+    </div>
+    <table class="t" style="align-self:start">
+      <tr><th style="width:40%">Operation</th><th>What it does</th></tr>
+      <tr><td class="mono" style="font-size:18px">insert / remove</td><td>Split a leaf; on removal the sibling takes the parent's place.</td></tr>
+      <tr><td class="mono" style="font-size:18px">swap</td><td>Exchange two leaves' windows.</td></tr>
+      <tr><td class="mono" style="font-size:18px">moveDivider</td><td>Prefer the divider on the arrow's side, else the opposite one.</td></tr>
+      <tr><td class="mono" style="font-size:18px">adoptResize</td><td>Turn dragged edges into ratios of the splits behind them.</td></tr>
+      <tr><td class="mono" style="font-size:18px">toggleOrientation</td><td>Side by side ↔ stacked for one split.</td></tr>
+      <tr><td class="mono" style="font-size:18px">mirror · equalize</td><td>Flip left ↔ right; set every ratio to 0.5.</td></tr>
+    </table>
+  </div>
+  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">16</span></div>
+</section>
+
+<!-- 17 GEOMETRY -->
+<section class="slide paper" data-name="geometry">
+  <div class="eyebrow">03 · Neighbours</div>
+  <div class="title">Which window is “to the left”?</div>
+  <div class="rule"></div>
+  <div class="body" style="display:grid;grid-template-columns:1fr 1fr;gap:70px">
+    <div>
+      <p class="lead">Focus and swap move by geometry, not by tree position, so the keys do what the eye expects. <code>Geometry.neighbor</code> ranks every frame on the arrow's side (4 pt tolerance):</p>
+      <div class="step" style="margin-top:28px"><div class="n">1</div><div class="tx">overlaps the source across the movement axis</div></div>
+      <div class="step"><div class="n">2</div><div class="tx">then the smaller gap between the facing edges</div></div>
+      <div class="step"><div class="n">3</div><div class="tx">then the smaller offset between centres</div></div>
+      <div class="step"><div class="n">4</div><div class="tx">then the lower window id, so ties are stable</div></div>
+    </div>
+    <svg width="780" height="470" viewBox="0 0 780 470" font-family="Avenir Next, Inter, Helvetica Neue, Arial, sans-serif" aria-label="Neighbour example">
+      <rect x="0" y="0" width="780" height="440" rx="12" fill="#FFFFFF" stroke="#C9CCD1"/>
+      <rect x="20" y="20" width="360" height="400" rx="8" fill="#F6F3EC" stroke="#1B1D21"/><text x="200" y="228" text-anchor="middle" font-size="28" fill="#1B1D21">1</text>
+      <rect x="400" y="20" width="360" height="190" rx="8" fill="#F6F3EC" stroke="#1B1D21"/><text x="580" y="124" text-anchor="middle" font-size="28" fill="#1B1D21">2</text>
+      <rect x="400" y="230" width="360" height="190" rx="8" fill="#FFFFFF" stroke="#C8623A" stroke-width="3"/><text x="580" y="334" text-anchor="middle" font-size="28" fill="#1B1D21">3</text>
+      <defs><marker id="ar4" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#C8623A"/></marker></defs>
+      <line x1="470" y1="325" x2="300" y2="325" stroke="#C8623A" stroke-width="3" marker-end="url(#ar4)"/>
+      <line x1="580" y1="290" x2="580" y2="170" stroke="#C8623A" stroke-width="3" marker-end="url(#ar4)"/>
+      <text x="390" y="462" text-anchor="middle" font-size="17" fill="#6E7379">from 3: left → 1, up → 2, down → none (unit-tested)</text>
+    </svg>
+  </div>
+  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">17</span></div>
+</section>
+
+<!-- 18 DIVIDER INPUT -->
+<section class="slide dark" data-name="divider-input">
+  <div class="dv-bar"></div>
+  <div class="dv-num">04</div>
+  <div class="dv-label">Input, focus and UI.</div>
+  <div class="dv-sub">macOS 14 changed how a background app may focus windows. Carbon hotkeys, a strict config file and native Settings complete the picture.</div>
+  <div class="ftr"><div class="l"><span class="lg lg-knockout lg-ftr" role="img" aria-label="BikS2013"></span><span>Section 04</span></div><span class="pg">18</span></div>
+</section>
+
+<!-- 19 FOCUS -->
+<section class="slide" data-name="focus">
+  <div class="eyebrow">04 · Focus on macOS 14+</div>
+  <div class="title">Focusing another app's window from the background.</div>
+  <div class="rule"></div>
+  <div class="body" style="display:grid;grid-template-columns:1fr 1.05fr;gap:60px">
+    <div>
+      <p class="lead">Since macOS 14, <code>NSRunningApplication.activate()</code> from an inactive app is ignored (“cooperative activation”). The first focus hotkeys did nothing.</p>
+      <p class="lead">Tiler uses what yabai and AeroSpace use: bring the process forward with the target window, post a synthetic make-key-window record, then <code>AXRaise</code>.</p>
+      <div class="card" style="margin-top:10px;padding:22px 28px">
+        <h3 style="font-size:22px">Which display is “active”?</h3>
+        <p style="margin:0;font-size:19px">The display of the focused window, else the one under the mouse. <code>SLSCopyActiveMenuBarDisplayIdentifier</code> reported the wrong display on macOS 27 and swallowed keys.</p>
+      </div>
+    </div>
+<pre class="code" style="align-self:start"><span class="c">// PrivateAPI.swift</span>
+<span class="k">func</span> focusWindow(pid: pid_t, wid: CGWindowID) {
+    <span class="k">var</span> psn = ProcessSerialNumber()
+    <span class="k">guard</span> GetProcessForPID(pid, &amp;psn) == noErr
+        <span class="k">else</span> { <span class="k">return</span> }
+    _ = _SLPSSetFrontProcessWithOptions(
+            &amp;psn, wid, 0x200) <span class="c">// user generated</span>
+    <span class="c">// make-key-window record (layout: yabai)</span>
+    <span class="k">var</span> bytes = [UInt8](repeating: 0, count: 0xf8)
+    bytes[0x04] = 0xf8; bytes[0x3a] = 0x10
+    <span class="c">// wid at 0x3c, 0xff over 0x20..&lt;0x30</span>
+    bytes[0x08] = 0x01
+    _ = SLPSPostEventRecordTo(&amp;psn, &amp;bytes)
+    bytes[0x08] = 0x02
+    _ = SLPSPostEventRecordTo(&amp;psn, &amp;bytes)
+}</pre>
+  </div>
+  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">19</span></div>
+</section>
+
+<!-- 20 HOTKEYS -->
+<section class="slide paper" data-name="hotkeys">
+  <div class="eyebrow">04 · Hotkeys</div>
+  <div class="title">Carbon hotkeys, registered only where they apply.</div>
+  <div class="rule"></div>
+  <div class="body" style="display:grid;grid-template-columns:1fr 1fr;gap:60px">
+    <table class="t" style="align-self:start">
+      <tr><th style="width:34%"></th><th style="width:33%">CGEventTap</th><th>RegisterEventHotKey</th></tr>
+      <tr><td>Permission</td><td>Input Monitoring / Accessibility</td><td>none</td></tr>
+      <tr><td>Sees</td><td>every keystroke</td><td>only its own combos</td></tr>
+      <tr><td>If its thread stalls</td><td>all typing lags</td><td>nothing else is affected</td></tr>
+      <tr><td>Conflicts</td><td>can swallow anything</td><td>first owner wins</td></tr>
+    </table>
+    <div>
+      <ul class="clean">
+        <li><b>Per focus.</b> <code>toggleDesktop</code> and <code>showHotkeys</code> are always registered; the tiling keys only while the active display shows a tiled desktop. Elsewhere apps keep those keys.</li>
+        <li><b>Suspended while recording.</b> Settings sets <code>hotkeysSuspended</code>, so a new combination reaches the recorder.</li>
+        <li><b>Esc borrowed.</b> While the overlay is up, Esc is a hotkey (id <code>0xE5C</code>), released when it closes.</li>
+        <li><b>Signature</b> <code>"TLRR"</code>; the id indexes <code>Action.allCases</code>.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">20</span></div>
+</section>
+
+<!-- 21 CONFIG -->
+<section class="slide" data-name="config">
+  <div class="eyebrow">04 · Configuration</div>
+  <div class="title">One file, strictly parsed, written back by Settings.</div>
+  <div class="rule"></div>
+  <div class="body" style="display:grid;grid-template-columns:1fr 1fr;gap:60px">
+    <div>
+      <ul class="clean">
+        <li><code>~/Library/Application Support/Tiler/config.json</code>, written from a template on first launch.</li>
+        <li><b>Every key required.</b> Missing, unknown, out-of-range or duplicate keys are errors, never defaults. The last good config stays in force; the menu and Settings show the error.</li>
+        <li><code>Config.json()</code> writes every key in a fixed order, so the file stays readable and diffable.</li>
+        <li>While the file has an error, Settings is read-only: it never overwrites a file being fixed by hand.</li>
+      </ul>
+    </div>
+    <svg width="800" height="520" viewBox="0 0 800 520" font-family="Avenir Next, Inter, Helvetica Neue, Arial, sans-serif" aria-label="Settings save path">
+      <defs><marker id="ar5" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#6E7379"/></marker></defs>
+      <g font-size="19" fill="#1B1D21">
+        <rect x="200" y="0" width="400" height="64" rx="10" fill="#F6F3EC" stroke="#C9CCD1"/><text x="400" y="39" text-anchor="middle">Settings change → new <tspan font-family="ui-monospace, SF Mono, Menlo, monospace">Config</tspan></text>
+        <rect x="200" y="104" width="400" height="64" rx="10" fill="#FFFFFF" stroke="#1B1D21" stroke-width="1.5"/><text x="400" y="143" text-anchor="middle"><tspan font-family="ui-monospace, SF Mono, Menlo, monospace">config.json()</tspan> → text</text>
+        <rect x="200" y="208" width="400" height="64" rx="10" fill="#FFFFFF" stroke="#C8623A" stroke-width="2.5"/><text x="400" y="247" text-anchor="middle"><tspan font-family="ui-monospace, SF Mono, Menlo, monospace">Config.parse(text)</tspan> — validate</text>
+        <rect x="200" y="312" width="400" height="64" rx="10" fill="#FFFFFF" stroke="#1B1D21" stroke-width="1.5"/><text x="400" y="351" text-anchor="middle">write atomically</text>
+        <rect x="200" y="416" width="400" height="64" rx="10" fill="#1B1D21"/><text x="400" y="455" text-anchor="middle" fill="#F6F3EC"><tspan font-family="ui-monospace, SF Mono, Menlo, monospace">reloadConfig()</tspan> → hotkeys, relayout</text>
+      </g>
+      <g stroke="#6E7379" stroke-width="2" marker-end="url(#ar5)">
+        <line x1="400" y1="64" x2="400" y2="100"/><line x1="400" y1="168" x2="400" y2="204"/><line x1="400" y1="272" x2="400" y2="308"/><line x1="400" y1="376" x2="400" y2="412"/>
+      </g>
+      <text x="400" y="512" text-anchor="middle" font-size="16" fill="#6E7379">Controller.save — the file stays the single source of truth</text>
+    </svg>
+  </div>
+  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">21</span></div>
+</section>
+
+<!-- 22 UI -->
+<section class="slide paper" data-name="ui">
+  <div class="eyebrow">04 · Native UI</div>
+  <div class="title">AppKit where macOS expects it, SwiftUI inside.</div>
+  <div class="rule"></div>
+  <div class="body" style="display:grid;grid-template-columns:560px 1fr;gap:56px;top:320px">
+    <div>
+      <ul class="clean">
+        <li><b>Settings:</b> <code>NSTabViewController</code> in toolbar style, one <code>NSHostingController</code> per pane with a grouped <code>Form</code>.</li>
+        <li><b>Overlay:</b> borderless non-activating <code>NSPanel</code>, <code>.hudWindow</code> material. It never becomes key, so the app underneath keeps the keyboard.</li>
+        <li><b>Menu bar glyph:</b> a template image drawn in code, filled when the desktop is tiled.</li>
+        <li><b>App icon:</b> rendered by <code>scripts/make-icon.swift</code>; no image assets in the repo.</li>
+      </ul>
+    </div>
+    <div style="position:relative;height:620px">
+      <img class="shot" src="{{SHOT_SHORTCUTS}}" alt="Tiler Settings, Shortcuts pane" style="position:absolute;left:0;top:0;height:600px;width:auto">
+      <img class="shot" src="{{SHOT_OVERLAY}}" alt="Tiler keyboard shortcuts overlay" style="position:absolute;right:0;top:90px;width:600px">
+    </div>
+  </div>
+  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">22</span></div>
+</section>
+
+<!-- 23 PRIVATE API -->
+<section class="slide" data-name="private-api">
+  <div class="eyebrow">04 · Private APIs</div>
+  <div class="title">Nine private symbols, none of them for moving windows.</div>
+  <div class="rule"></div>
+  <div class="body" style="display:grid;grid-template-columns:1.35fr 1fr;gap:60px">
+    <table class="t" style="align-self:start">
+      <tr><th style="width:58%">Symbol</th><th>Purpose</th></tr>
+      <tr><td class="mono" style="font-size:17px">SLSMainConnectionID</td><td>window-server connection</td></tr>
+      <tr><td class="mono" style="font-size:17px">CGSCopyManagedDisplaySpaces · SLSManagedDisplayGetCurrentSpace · SLSManagedDisplayIsAnimating · SLSCopySpacesForWindows</td><td>Spaces, read-only</td></tr>
+      <tr><td class="mono" style="font-size:17px">_AXUIElementGetWindow</td><td>AX element → window id</td></tr>
+      <tr><td class="mono" style="font-size:17px">GetProcessForPID · _SLPSSetFrontProcessWithOptions · SLPSPostEventRecordTo</td><td>focus</td></tr>
+    </table>
+    <div class="card" style="align-self:start">
+      <h3>Risk, managed</h3>
+      <ul class="clean" style="margin-top:16px">
+        <li>All work with SIP on; checked on macOS 27.0.1.</li>
+        <li>The same calls yabai, AeroSpace and HyprMac rely on.</li>
+        <li>Frames are written only through the public AX API.</li>
+        <li>No moving windows between Spaces — that path broke on macOS 26/27.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">23</span></div>
+</section>
+
+<!-- 24 DIVIDER QUALITY -->
+<section class="slide dark" data-name="divider-quality">
+  <div class="dv-bar"></div>
+  <div class="dv-num">05</div>
+  <div class="dv-label">Quality and shipping.</div>
+  <div class="dv-sub">What it costs at runtime, how it was tested, what broke along the way, what is still open — and how a release reaches Homebrew.</div>
+  <div class="ftr"><div class="l"><span class="lg lg-knockout lg-ftr" role="img" aria-label="BikS2013"></span><span>Section 05</span></div><span class="pg">24</span></div>
+</section>
+
+<!-- 25 PERFORMANCE -->
+<section class="slide paper" data-name="performance">
+  <div class="eyebrow">05 · Runtime cost</div>
+  <div class="title">Idle means idle.</div>
+  <div class="rule"></div>
+  <div class="body" style="display:grid;grid-template-columns:1.2fr 1fr;gap:90px;align-items:start">
+    <div>
+      <div style="font-size:260px;font-weight:200;letter-spacing:-10px;line-height:.9"><span class="cop">0</span><span style="font-size:120px;vertical-align:top;margin-left:10px">%</span></div>
+      <div style="margin-top:28px;font-size:28px;line-height:1.35;max-width:720px">CPU while nothing changes. No timers, no polling: Tiler wakes only when the window server or an app tells it something happened.</div>
+    </div>
+    <div style="padding-top:20px">
+      <div class="kv"><span class="k">Reconcile pass</span><span class="v">≈1 ms</span></div>
+      <div class="kv"><span class="k">Coalescing window</span><span class="v">20 ms</span></div>
+      <div class="kv"><span class="k">Memory (debug build)</span><span class="v">≈52 MB</span></div>
+      <div class="kv"><span class="k">Threads, last desktop off</span><span class="v">20 → 8</span></div>
+      <div class="kv"><span class="k">Worst AX call</span><span class="v">1 s cap</span></div>
+    </div>
+  </div>
+  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">25</span></div>
+</section>
+
+<!-- 26 TESTING -->
+<section class="slide" data-name="testing">
+  <div class="eyebrow">05 · Testing</div>
+  <div class="title">Unit tests for the logic, live checks for the rest.</div>
+  <div class="rule"></div>
+  <div class="body grid g2" style="gap:60px">
+    <div class="card">
+      <h3>22 XCTest tests on TilerCore</h3>
+      <table class="t" style="margin-top:12px">
+        <tr><td style="width:40%">BSPTree · 11</td><td>dwindle split, gaps, remove, swap, divider moves, clamp, mirror, equalize, adoptResize</td></tr>
+        <tr><td>Config · 9</td><td>template parses, missing / unknown / duplicate keys, “none”, json() round trip, key events, conflicts</td></tr>
+        <tr><td style="border:0">Geometry · 2</td><td style="border:0">neighbour ranking, hit testing</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <h3>Checked live on macOS 27</h3>
+      <ul class="clean" style="margin-top:16px">
+        <li>tile on activation; persistence across restarts</li>
+        <li>new and closed windows, swap, resize, float, equalize</li>
+        <li>focus left/right; drag-to-swap; gap reload</li>
+        <li>hotkeys released on untiled desktops; other display never touched</li>
+        <li>overlay Esc and toggle with Finder in front; Settings recorder and conflict check</li>
+      </ul>
+    </div>
+  </div>
+  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">26</span></div>
+</section>
+
+<!-- 27 BUGS -->
+<section class="slide paper" data-name="bugs">
+  <div class="eyebrow">05 · Found and fixed</div>
+  <div class="title">What live testing caught.</div>
+  <div class="rule"></div>
+  <div class="body">
+    <table class="t">
+      <tr><th style="width:30%">Symptom</th><th style="width:36%">Cause</th><th>Fix</th></tr>
+      <tr><td>Focus hotkeys did nothing</td><td>macOS 14 ignores <code>activate()</code> from a background app</td><td>SLPS front-process + key-window record + <code>AXRaise</code></td></tr>
+      <tr><td>Keys swallowed on an untiled desktop</td><td>Active-menu-bar-display call answered wrong on macOS 27</td><td>Active display = focused window's, else the mouse's</td></tr>
+      <tr><td>Overlay ignored Esc</td><td>A non-activating panel gets no keyboard while another app is in front</td><td>Never take focus; borrow Esc as a hotkey while visible</td></tr>
+      <tr><td>Settings opened behind other apps</td><td>Same cooperative-activation rule</td><td><code>focusWindow</code> on our own window</td></tr>
+      <tr><td>Default keys moved windows away</td><td>Rectangle and Hammerspoon own <code>⌃⌥</code> and Hyper combos</td><td>Defaults moved to the <code>⌃⌘</code> family</td></tr>
+    </table>
+  </div>
+  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">27</span></div>
+</section>
+
+<!-- 28 LIMITS -->
+<section class="slide" data-name="limits">
+  <div class="eyebrow">05 · Known limits</div>
+  <div class="title">Still open.</div>
+  <div class="rule"></div>
+  <div class="body grid g3">
+    <div class="card"><h3>Minimum sizes</h3><p>Apps that refuse a width overlap their neighbour (Outlook stops at 770 pt). A fix must read back sizes without oscillating.</p></div>
+    <div class="card"><h3>Shared shortcuts</h3><p>Carbon accepts a combination another tool already owns, and that tool wins. Settings can only see clashes inside Tiler.</p></div>
+    <div class="card"><h3>Other window tools</h3><p>Rectangle, Hammerspoon or HyprMac on the same desktop act on the same windows. Use one manager per desktop.</p></div>
+    <div class="card"><h3>Drag-resize</h3><p>Unit-tested through <code>adoptResize</code>; drag-swap was checked live, drag-resize not yet.</p></div>
+    <div class="card"><h3>Tahoe corners</h3><p>Large, varying window corner radii on macOS 26+ make equal gaps look uneven. Cosmetic.</p></div>
+    <div class="card"><h3>Shared Spaces</h3><p>“Displays have separate Spaces” off is handled (the “Main” Space) but not checked live.</p></div>
+  </div>
+  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">28</span></div>
+</section>
+
+<!-- 29 RELEASE -->
+<section class="slide paper" data-name="release">
+  <div class="eyebrow">05 · Build and release</div>
+  <div class="title">From <span class="mono" style="font-size:.84em;font-weight:400;color:var(--copper)">swift test</span> to <span class="mono" style="font-size:.84em;font-weight:400;color:var(--copper)">brew install</span>.</div>
+  <div class="rule"></div>
+  <svg style="position:absolute;left:90px;top:340px" width="1740" height="330" viewBox="0 0 1740 330" font-family="Avenir Next, Inter, Helvetica Neue, Arial, sans-serif" aria-label="Release pipeline">
+    <defs><marker id="ar6" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#6E7379"/></marker></defs>
+    <g font-size="19" fill="#1B1D21" text-anchor="middle">
+      <rect x="0" y="0" width="260" height="120" rx="12" fill="#FFFFFF" stroke="#C9CCD1"/>
+      <text x="130" y="48" font-weight="600">swift test</text><text x="130" y="80" font-size="16" fill="#6E7379">22 tests must pass</text>
+      <rect x="296" y="0" width="260" height="120" rx="12" fill="#FFFFFF" stroke="#C9CCD1"/>
+      <text x="426" y="48" font-weight="600">universal build</text><text x="426" y="80" font-size="16" fill="#6E7379">arm64 + x86_64, release</text>
+      <rect x="592" y="0" width="260" height="120" rx="12" fill="#FFFFFF" stroke="#C9CCD1"/>
+      <text x="722" y="48" font-weight="600">sign</text><text x="722" y="80" font-size="16" fill="#6E7379">Developer ID +</text><text x="722" y="102" font-size="16" fill="#6E7379">hardened runtime</text>
+      <rect x="888" y="0" width="260" height="120" rx="12" fill="#FFFFFF" stroke="#C8623A" stroke-width="2.5"/>
+      <text x="1018" y="48" font-weight="600">notarize</text><text x="1018" y="80" font-size="16" fill="#6E7379">notarytool, staple</text><text x="1018" y="102" font-size="16" fill="#6E7379">app and DMG</text>
+      <rect x="1184" y="0" width="260" height="120" rx="12" fill="#FFFFFF" stroke="#C9CCD1"/>
+      <text x="1314" y="48" font-weight="600">package</text><text x="1314" y="80" font-size="16" fill="#6E7379">zip · DMG · SHA256SUMS</text>
+      <rect x="1480" y="0" width="260" height="120" rx="12" fill="#FFFFFF" stroke="#C9CCD1"/>
+      <text x="1610" y="48" font-weight="600">GitHub release</text><text x="1610" y="80" font-size="16" fill="#6E7379">BikS2013/tiler</text><text x="1610" y="102" font-size="16" fill="#6E7379">tag · notes · assets</text>
+    </g>
+    <g stroke="#6E7379" stroke-width="2" marker-end="url(#ar6)">
+      <line x1="260" y1="60" x2="292" y2="60"/><line x1="556" y1="60" x2="588" y2="60"/><line x1="852" y1="60" x2="884" y2="60"/><line x1="1148" y1="60" x2="1180" y2="60"/><line x1="1444" y1="60" x2="1476" y2="60"/>
+      <line x1="1610" y1="120" x2="1610" y2="196"/>
+    </g>
+    <rect x="1180" y="200" width="560" height="120" rx="12" fill="#1B1D21"/>
+    <text x="1460" y="246" text-anchor="middle" font-size="21" font-weight="600" fill="#F6F3EC">Homebrew cask · BikS2013/homebrew-tiler</text>
+    <text x="1460" y="282" text-anchor="middle" font-size="17" fill="#C9CCD1" font-family="ui-monospace, SF Mono, Menlo, monospace">version + sha256 of the zip</text>
+    <text x="0" y="246" font-size="20" fill="#1B1D21">One command does the left five boxes:</text>
+    <text x="0" y="284" font-size="18" fill="#6E7379" font-family="ui-monospace, SF Mono, Menlo, monospace">TILER_SIGN_IDENTITY=… NOTARY_PROFILE=tiler-notary scripts/package.sh</text>
+  </svg>
+  <div style="position:absolute;left:90px;right:90px;top:720px" class="small">A stable Developer ID signature keeps the Accessibility grant valid across updates. Gatekeeper reports “Notarized Developer ID” for the app and the disk image. Steps and checks: <code>docs/design/release-runbook.md</code>.</div>
+  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">29</span></div>
+</section>
+
+<!-- 30 GET IT -->
+<section class="slide" data-name="get-it">
+  <div class="eyebrow">05 · Get it, read it</div>
+  <div class="title">Install it, then open the source.</div>
+  <div class="rule"></div>
+  <div class="body grid g2" style="gap:60px">
+    <div>
+<pre class="code"><span class="c"># install</span>
+brew tap BikS2013/tiler
+brew install --cask tiler
+
+<span class="c"># build from source</span>
+git clone https://github.com/BikS2013/tiler
+cd tiler &amp;&amp; swift test &amp;&amp; swift build
+
+<span class="c"># drive a running instance</span>
+scripts/tiler-ctl.sh toggle active
+scripts/tiler-ctl.sh retile | reload | dump</pre>
+    </div>
+    <div>
+      <div class="kv"><span class="k">Source</span><span class="v" style="font-size:22px">github.com/BikS2013/tiler</span></div>
+      <div class="kv"><span class="k">Homebrew tap</span><span class="v" style="font-size:22px">BikS2013/homebrew-tiler</span></div>
+      <div class="kv"><span class="k">Decks</span><span class="v" style="font-size:22px">biks2013.github.io/tiler</span></div>
+      <div class="kv"><span class="k">Design</span><span class="v" style="font-size:22px">docs/design/project-design.md</span></div>
+      <div class="kv"><span class="k">Logs</span><span class="v" style="font-size:22px">com.giorgosmarinos.tiler</span></div>
+      <p class="small" style="margin-top:22px">First launch asks for Accessibility. That is the only permission Tiler needs.</p>
+    </div>
+  </div>
+  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">30</span></div>
+</section>
+
+<!-- 31 CLOSING -->
+<section class="slide dark" data-name="closing">
+  <svg width="1920" height="1080" style="position:absolute;inset:0;opacity:.06" aria-hidden="true">
+    <defs><pattern id="lines2" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M0 40 L40 0" stroke="#fff" stroke-width="0.5"/></pattern></defs>
+    <rect width="1920" height="1080" fill="url(#lines2)"/>
+  </svg>
+  <div class="eyebrow" style="top:140px">Thank you</div>
+  <div style="position:absolute;top:250px;left:90px;right:300px;font-size:110px;line-height:.98;font-weight:300;letter-spacing:-2px;color:var(--paper)">
+    Do one job,<br><span style="color:var(--copper-l);font-style:italic;font-weight:400">on one desktop, well.</span>
+  </div>
+  <div style="position:absolute;top:560px;left:90px;width:1100px;font-size:28px;line-height:1.45;color:rgba(246,243,236,.78)">
+    Questions, issues and pull requests: <span class="mono" style="color:var(--paper)">github.com/BikS2013/tiler</span>
+  </div>
+  <div style="position:absolute;left:90px;right:90px;bottom:80px;display:flex;align-items:flex-end;justify-content:space-between">
+    <span class="lg lg-knockout lg-hero" role="img" aria-label="BikS2013"></span>
+    <div style="font-size:18px;letter-spacing:.4px;color:rgba(246,243,236,.7);text-align:right;line-height:1.55">
+      <div>BikS2013 · Tiler v0.2.0</div>
+      <div class="mono">brew install --cask tiler</div>
+    </div>
+  </div>
+</section>
+
+</div></div>
+<script>
+(function(){
+  var slides = Array.prototype.slice.call(document.querySelectorAll('#deck > .slide'));
+  var cur = 0;
+  function scaleSlide(){
+    var vv = window.visualViewport;
+    var w = vv ? vv.width : window.innerWidth, h = vv ? vv.height : window.innerHeight;
+    var s = Math.min(w / 1920, h / 1080);
+    var deck = document.getElementById('deck');
+    deck.style.transform = 'translate(' + ((w - 1920 * s) / 2) + 'px,' + ((h - 1080 * s) / 2) + 'px) scale(' + s + ')';
+  }
+  function showSlide(n){
+    n = Math.max(1, Math.min(slides.length, n|0));
+    slides.forEach(function(el, i){ el.classList.toggle('active', i === n - 1); });
+    cur = n - 1;
+    if (location.hash !== '#' + n) history.replaceState(null, '', '#' + n);
+  }
+  window.showSlide = showSlide;
+  window.scaleSlide = scaleSlide;
+  document.addEventListener('keydown', function(e){
+    var t = e.target;
+    if (t && (t.isContentEditable || /INPUT|TEXTAREA|SELECT/.test(t.tagName))) return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (['ArrowRight','PageDown',' '].indexOf(e.key) >= 0) { showSlide(cur + 2); e.preventDefault(); }
+    else if (['ArrowLeft','PageUp'].indexOf(e.key) >= 0) { showSlide(cur); e.preventDefault(); }
+    else if (e.key === 'Home') showSlide(1);
+    else if (e.key === 'End') showSlide(slides.length);
+  });
+  window.addEventListener('resize', scaleSlide);
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', scaleSlide);
+  window.addEventListener('hashchange', function(){ showSlide(parseInt(location.hash.slice(1), 10) || 1); });
+  scaleSlide();
+  showSlide(parseInt(location.hash.slice(1), 10) || 1);
+})();
+</script>
+</body>
+</html>

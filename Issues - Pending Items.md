@@ -48,6 +48,18 @@
 - **2026-10-10 — Screen or gap changes were not applied** until a window came or went. Desktops now
   carry `needsLayout`, set on display changes and config reloads.
 
+## Release log
+
+- **2026-10-10 — v0.2.0 (build 1).** `scripts/package.sh` with Developer ID `2C7D6068…` and
+  profile `tiler-notary`: 22 tests passed; app and disk image `status: Accepted`, stapled,
+  `source=Notarized Developer ID`; universal (x86_64 arm64). Zip SHA-256
+  `c3729a053a7b2873d8206baa86ffb039ddd48e27ebf0de7b179f93e412ce345f`, DMG
+  `d45a90348b75076ce1613335637827fd193ea4f1593917defa21beb7db44df2b`. Release
+  https://github.com/BikS2013/tiler/releases/tag/v0.2.0 (downloaded zip checksum verified). Tap
+  `BikS2013/homebrew-tiler`: `brew style` clean, `brew audit --cask --online` clean, scratch
+  `brew install --cask` accepted by Gatekeeper and uninstalled. Moving from the Apple Development
+  to the Developer ID signature dropped the Accessibility grant on this Mac (expected; re-grant once).
+
 ## Dependency vetting log
 
 - 2026-10-10 — No third-party dependencies. System frameworks only (AppKit, ApplicationServices,

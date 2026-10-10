@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tiler Decks</title>
+<meta name="description" content="Tiler: macOS menu bar tiling for one desktop at a time. Decks for users and engineers.">
+<style>
+  :root { --ink:#1B1D21; --copper:#C8623A; --paper:#F6F3EC; --grey:#6E7379; --rule:#C9CCD1; --card:#FFFFFF; }
+  @media (prefers-color-scheme: dark) {
+    :root { --ink:#F6F3EC; --copper:#E08A5E; --paper:#111316; --grey:#C9CCD1; --rule:#3a3d42; --card:#1B1D21; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink);
+         font-family:"Avenir Next","Inter","Helvetica Neue",Helvetica,Arial,sans-serif; line-height:1.5; }
+  main { max-width:880px; margin:0 auto; padding:64px 16px 48px; }
+  .eyebrow { font-family:ui-monospace,"SF Mono",Menlo,monospace; color:var(--copper); letter-spacing:.08em;
+             text-transform:uppercase; font-size:13px; }
+  h1 { font-size:clamp(36px,6vw,56px); line-height:1.05; margin:.2em 0 .3em; font-weight:600; }
+  h1 em { font-style:normal; color:var(--copper); }
+  p.lead { font-size:19px; color:var(--grey); max-width:640px; margin:0 0 36px; }
+  hr { border:0; border-top:1px dashed var(--rule); margin:32px 0; }
+  .decks { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:20px; }
+  a.deck { display:block; background:var(--card); border:1px solid var(--rule); border-radius:14px; padding:24px;
+           color:inherit; text-decoration:none; transition:border-color .15s; }
+  a.deck:hover { border-color:var(--copper); }
+  a.deck h2 { margin:6px 0 6px; font-size:22px; font-weight:600; }
+  a.deck p { margin:0; color:var(--grey); font-size:15px; }
+  a.deck .pdf { display:inline-block; margin-top:14px; font-size:14px; color:var(--copper); }
+  pre { background:var(--card); border:1px solid var(--rule); border-radius:10px; padding:16px; overflow-x:auto;
+        font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:14px; }
+  footer { margin-top:40px; font-size:14px; color:var(--grey); }
+  footer a { color:var(--copper); }
+</style>
+</head>
+<body>
+<main>
+  <div class="eyebrow">BikS2013 · Tiler</div>
+  <h1>Tiling windows, <em>one desktop</em> at a time.</h1>
+  <p class="lead">A macOS menu bar app that tiles the desktop you turn it on for, on that display only. Everything else stays exactly where you left it.</p>
+
+  <div class="decks">
+    <a class="deck" href="Project%20Deck/tiler-users.html">
+      <div class="eyebrow">For Mac power users · 16 slides</div>
+      <h2>Using Tiler</h2>
+      <p>Install, turn tiling on and off, every shortcut, the overlay, the mouse, Settings and known limits.</p>
+      <span class="pdf">Open deck →</span>
+    </a>
+    <a class="deck" href="Project%20Deck/tiler-engineers.html">
+      <div class="eyebrow">For developers and engineers</div>
+      <h2>How Tiler is built</h2>
+      <p>Architecture, Spaces and Accessibility APIs, the event model, the BSP tree, focus, hotkeys, testing and release.</p>
+      <span class="pdf">Open deck →</span>
+    </a>
+  </div>
+
+  <hr>
+  <div class="eyebrow">Install</div>
+  <pre>brew tap BikS2013/tiler
+brew install --cask tiler</pre>
+  <p>Universal (Apple silicon and Intel), macOS 14 or later, signed with Developer ID and notarized by Apple.</p>
+
+  <footer>
+    <a href="https://github.com/BikS2013/tiler">Source</a> ·
+    <a href="https://github.com/BikS2013/tiler/releases">Releases</a> ·
+    PDFs: <a href="Project%20Deck/tiler-users.pdf">users</a>, <a href="Project%20Deck/tiler-engineers.pdf">engineers</a>
+  </footer>
+</main>
+</body>
+</html>
