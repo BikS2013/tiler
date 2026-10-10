@@ -6,7 +6,7 @@ tap. It follows the sibling projects screener and Jumpee:
 - `scripts/build-app.sh` builds and signs `build/Tiler.app`; `scripts/package.sh` packages it.
 - Release files go to `dist/` (`Tiler-<version>.zip`, `Tiler-<version>.dmg`, `SHA256SUMS`).
 - Releases are tagged `v<version>`; the cask downloads `Tiler-<version>.zip`.
-- The tap repository `BikS2013/homebrew-tiler` gets one commit `tiler <version>` per release.
+- The tap repository `biks2013-tools/homebrew-tiler` gets one commit `tiler <version>` per release.
 
 Last verified: 2026-10-10 (`v0.2.0`, build 1). macOS 27.0, Xcode 27.0.
 
@@ -20,7 +20,7 @@ Last verified: 2026-10-10 (`v0.2.0`, build 1). macOS 27.0, Xcode 27.0.
 | 0.2 | Developer ID Application certificate | `security find-identity -v -p codesigning` lists `Developer ID Application: GEORGIOS MARINOS (9F9H8NCAUB)` | Xcode → Settings → Accounts → Manage Certificates |
 | 0.3 | notarytool profile `tiler-notary` | `xcrun notarytool history --keychain-profile tiler-notary` | See below |
 | 0.4 | GitHub CLI logged in as `BikS2013` | `gh auth status` | `gh auth login` |
-| 0.5 | Homebrew clone of the tap | `git -C "$(brew --repo biks2013/tiler)" remote -v` | `brew tap BikS2013/tiler` |
+| 0.5 | Homebrew clone of the tap | `git -C "$(brew --repo biks2013-tools/tiler)" remote -v` | `brew tap biks2013-tools/tiler` |
 
 Two Developer ID identities share the same name (`2C7D6068C232BA74073D56085DDBB04E5F14DF30` and
 `CEC7876107F7ED244ACA2B9ED7D6E9DE0056931C`, both expiring 2027-02-01): sign by SHA-1. Releases
@@ -81,21 +81,21 @@ Accessibility Access…", remove Tiler from the Accessibility list and add it ag
 ```sh
 git push origin main
 git tag -a v<version> -m "Tiler <version>" && git push origin v<version>
-gh release create v<version> --repo BikS2013/tiler --title "Tiler v<version>" --notes-file <notes.md> \
+gh release create v<version> --repo biks2013-tools/tiler --title "Tiler v<version>" --notes-file <notes.md> \
   dist/Tiler-<version>.zip dist/Tiler-<version>.dmg dist/SHA256SUMS
-curl -sL -o /tmp/dl.zip https://github.com/BikS2013/tiler/releases/download/v<version>/Tiler-<version>.zip
+curl -sL -o /tmp/dl.zip https://github.com/biks2013-tools/tiler/releases/download/v<version>/Tiler-<version>.zip
 shasum -a 256 /tmp/dl.zip   # must equal the zip line in dist/SHA256SUMS
 ```
 
 ## 7. Update the Homebrew tap
 
 ```sh
-TAP="$(brew --repo biks2013/tiler)"
+TAP="$(brew --repo biks2013-tools/tiler)"
 git -C "$TAP" pull -q origin main
 cp homebrew-tap/Casks/tiler.rb "$TAP/Casks/tiler.rb" && cp homebrew-tap/README.md "$TAP/README.md"
 git -C "$TAP" add Casks/tiler.rb README.md && git -C "$TAP" commit -m "tiler <version>" && git -C "$TAP" push origin main
-brew audit --cask --online biks2013/tiler/tiler
-brew install --cask --appdir="$(mktemp -d)" biks2013/tiler/tiler   # scratch install test
+brew audit --cask --online biks2013-tools/tiler/tiler
+brew install --cask --appdir="$(mktemp -d)" biks2013-tools/tiler/tiler   # scratch install test
 ```
 
 Do not `brew install` into `/Applications` while Tiler runs from there: `uninstall quit:` quits it.
@@ -103,7 +103,7 @@ Do not `brew install` into `/Applications` while Tiler runs from there: `uninsta
 ## 8. Decks (GitHub Pages)
 
 The repository's `main` branch root is published with GitHub Pages at
-https://biks2013.github.io/tiler/. `index.html` links the two decks in `Project Deck/`.
+https://biks2013-tools.github.io/tiler/. `index.html` links the two decks in `Project Deck/`.
 Rebuild a deck's editing tools with `node "Project Deck/<deck>.rebuild.mjs"`.
 
 ## 9. Record the release

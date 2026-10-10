@@ -74,17 +74,17 @@ spctl --assess --type open --context context:primary-signature --verbose=2 "$DMG
 SHA="$(shasum -a 256 "$ZIP" | awk '{print $1}')"
 (cd "$DIST" && shasum -a 256 "$(basename "$ZIP")" "$(basename "$DMG")" > "$SUMS")
 
-# 7. Homebrew cask for this version (copied into BikS2013/homebrew-tiler on release).
+# 7. Homebrew cask for this version (copied into biks2013-tools/homebrew-tiler on release).
 mkdir -p "$(dirname "$CASK")"
 cat > "$CASK" <<CASKEOF
 cask "tiler" do
   version "$VERSION"
   sha256 "$SHA"
 
-  url "https://github.com/BikS2013/tiler/releases/download/v#{version}/Tiler-#{version}.zip"
+  url "https://github.com/biks2013-tools/tiler/releases/download/v#{version}/Tiler-#{version}.zip"
   name "Tiler"
   desc "Menu bar tiling window manager for one desktop at a time"
-  homepage "https://github.com/BikS2013/tiler"
+  homepage "https://github.com/biks2013-tools/tiler"
 
   depends_on macos: :sonoma
 
@@ -117,7 +117,7 @@ cask "tiler" do
     Upgrading: Settings > General > Add Missing Settings (adds new settings only).
     Launch at login: Settings > General.
 
-    Decks: https://biks2013.github.io/tiler/
+    Decks: https://biks2013-tools.github.io/tiler/
   EOS
 end
 CASKEOF

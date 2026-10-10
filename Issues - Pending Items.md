@@ -103,8 +103,8 @@
   `source=Notarized Developer ID`; universal (x86_64 arm64). Zip SHA-256
   `c3729a053a7b2873d8206baa86ffb039ddd48e27ebf0de7b179f93e412ce345f`, DMG
   `d45a90348b75076ce1613335637827fd193ea4f1593917defa21beb7db44df2b`. Release
-  https://github.com/BikS2013/tiler/releases/tag/v0.2.0 (downloaded zip checksum verified). Tap
-  `BikS2013/homebrew-tiler`: `brew style` clean, `brew audit --cask --online` clean, scratch
+  https://github.com/biks2013-tools/tiler/releases/tag/v0.2.0 (downloaded zip checksum verified). Tap
+  `biks2013-tools/homebrew-tiler`: `brew style` clean, `brew audit --cask --online` clean, scratch
   `brew install --cask` accepted by Gatekeeper and uninstalled. Moving from the Apple Development
   to the Developer ID signature dropped the Accessibility grant on this Mac (expected; re-grant once).
 

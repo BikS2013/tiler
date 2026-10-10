@@ -80,6 +80,6 @@ desktops (display + Space) the user turns on. Design: `docs/design/project-desig
 - `swift build`, `swift test`
 - `TILER_SIGN_IDENTITY=… scripts/build-app.sh [--install]`
 - Release: `TILER_SIGN_IDENTITY=2C7D6068C232BA74073D56085DDBB04E5F14DF30 NOTARY_PROFILE=tiler-notary scripts/package.sh`,
-  then `docs/design/release-runbook.md` (GitHub `BikS2013/tiler`, tap `BikS2013/homebrew-tiler`)
+  then `docs/design/release-runbook.md` (GitHub `biks2013-tools/tiler`, tap `biks2013-tools/homebrew-tiler`)
 - Decks: `Project Deck/` (nbg-design skill, BikS2013 theme), published with GitHub Pages
 - `scripts/tiler-ctl.sh toggle active | retile | reload | settings | shortcuts | moveresize | dump`

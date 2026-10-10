@@ -90,11 +90,11 @@ The defaults avoid the shortcuts Rectangle (`⌃⌥`, `⌃⌥⌘`) and the local
 With Homebrew:
 
 ```sh
-brew tap BikS2013/tiler
+brew tap biks2013-tools/tiler
 brew install --cask tiler
 ```
 
-Or download `Tiler-<version>.dmg` from [Releases](https://github.com/BikS2013/tiler/releases) and drag
+Or download `Tiler-<version>.dmg` from [Releases](https://github.com/biks2013-tools/tiler/releases) and drag
 Tiler to Applications. The app is universal (Apple silicon and Intel), needs macOS 14 or later, and is
 signed with a Developer ID certificate and notarized by Apple.
 
@@ -102,7 +102,7 @@ On first launch macOS asks for **Accessibility** permission (System Settings →
 Security → Accessibility). Tiler needs no other permission (no Input Monitoring, no Screen
 Recording, SIP stays on). Turn on **Launch at Login** in Settings → General.
 
-Decks: [for users and for engineers](https://biks2013.github.io/tiler/) (also in `Project Deck/`).
+Decks: [for users and for engineers](https://biks2013-tools.github.io/tiler/) (also in `Project Deck/`).
 
 ### Build from source
 

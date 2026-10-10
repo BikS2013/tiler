@@ -2,10 +2,10 @@ cask "tiler" do
   version "0.5.0"
   sha256 "2b3c91eda14a30b138e9b6e794ab97f0b24bfe1768157e79b85d6774ea3a01e7"
 
-  url "https://github.com/BikS2013/tiler/releases/download/v#{version}/Tiler-#{version}.zip"
+  url "https://github.com/biks2013-tools/tiler/releases/download/v#{version}/Tiler-#{version}.zip"
   name "Tiler"
   desc "Menu bar tiling window manager for one desktop at a time"
-  homepage "https://github.com/BikS2013/tiler"
+  homepage "https://github.com/biks2013-tools/tiler"
 
   depends_on macos: :sonoma
 
@@ -38,6 +38,6 @@ cask "tiler" do
     Upgrading: Settings > General > Add Missing Settings (adds new settings only).
     Launch at login: Settings > General.
 
-    Decks: https://biks2013.github.io/tiler/
+    Decks: https://biks2013-tools.github.io/tiler/
   EOS
 end

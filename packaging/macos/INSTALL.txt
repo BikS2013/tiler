@@ -8,7 +8,7 @@ only where you turn it on; every other display and desktop is left exactly as it
    Drag "Tiler" onto the "Applications" shortcut in this window.
    The app is signed with a Developer ID certificate and notarized by Apple, so macOS
    opens it without a Gatekeeper warning. Requires macOS 14 or later (Apple silicon or Intel).
-   With Homebrew instead:  brew tap BikS2013/tiler && brew install --cask tiler
+   With Homebrew instead:  brew tap biks2013-tools/tiler && brew install --cask tiler
 
 2. First launch
    Open Tiler from Applications. It has no Dock icon: look for the three-tile icon in the
