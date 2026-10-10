@@ -7,8 +7,8 @@
    tiles overlap by ~26 pt. A fix would read back the actual size after a write and shift the
    split ratio, which needs care to avoid oscillation. Seen 2026-10-10.
 2. **Conflicts with other window tools.** Rectangle (`⌃⌥` arrows/letters, `⌃⌥⌘←/→`), the local
-   Hammerspoon config (Hyper+←/→ moves the window to the adjacent Space; its `⌘⌥`-drag was
-   removed in favour of Tiler's), any other `⌘⌥`-drag tool, and a running
+   Hammerspoon config (its `⌘⌥`-drag and Hyper+←/→ desktop move were removed in favour of
+   Tiler's on 2026-10-10), any other `⌘⌥`-drag tool, and a running
    HyprMac would act on the same windows or keys. Tiler's defaults avoid the known shortcuts; do
    not tile with Tiler on a desktop HyprMac also manages.
 3. **Drag-resize not yet checked live** (unit-tested via `BSPTree.adoptResize`). Drag-swap was
@@ -30,7 +30,7 @@
 10. **Moving a window to another desktop depends on a title-bar drag.** An app whose title bar
     has no draggable area right of the zoom button (custom-drawn chrome) may not move; Tiler then
     says "The window did not move". It also needs the Mission Control "Move left/right a space"
-    shortcuts on. Your Hammerspoon Hyper+←/→ does the same thing; either can stay.
+    shortcuts on.
 
 11. **Modifier + drag and synthetic clicks.** `WindowDrag` lets Tiler's own synthetic events
     through (the desktop mover posts with no modifiers anyway), but another tool posting a
@@ -41,7 +41,8 @@
 - **2026-10-10 — ⌘⌥ + drag moves a window from anywhere in it (0.7.0).** `WindowDrag`, config
   key `dragToMove` (Settings → General → Drag windows with), replacing the Hammerspoon
   `windowDragTap` (removed from `~/.hammerspoon/init.lua` and its hotkeys cheatsheet; backup kept
-  outside the repo). First build moved tiled windows without snapping back: the swallowed press
+  outside the repo). The Hammerspoon Hyper+←/→ desktop move was removed the same day (Tiler's
+  `⌃⌘,` / `⌃⌘.` replace it). First build moved tiled windows without snapping back: the swallowed press
   never reaches the window server, so `NSEvent.pressedMouseButtons` reads 0; fixed by
   `WindowDrag.isActive` feeding the controller's `userDragging`. Checked live: TextEdit moved by
   exactly the drag (−300, −200) with no text selected; plain drags and ⌃⌘ / ⌃⌥⌘ drags reached the

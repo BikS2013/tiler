@@ -108,8 +108,7 @@ also ends it. A tiled window is left alone (float it first with `⌃⌘T`).
 With the mouse: drag a tile onto another tile to swap them, drag a tile's edge to resize the
 split, and drop a window from elsewhere onto the desktop to tile it.
 
-The defaults avoid the shortcuts Rectangle (`⌃⌥`, `⌃⌥⌘`) and the local Hammerspoon config
-(Hyper+←/→) use. Rebind anything in Settings → Shortcuts or in the config file.
+The defaults avoid the shortcuts Rectangle (`⌃⌥`, `⌃⌥⌘`) and Hyper-key setups use. Rebind anything in Settings → Shortcuts or in the config file.
 
 ## Install
 
