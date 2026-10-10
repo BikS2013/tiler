@@ -103,6 +103,12 @@
 
 ## Release log
 
+- **2026-10-10 — v0.7.0 (build 16).** ⌥⌘ + drag moves a window from anywhere in it. 31 tests
+  passed; app and disk image `status: Accepted`, `source=Notarized Developer ID`. Zip SHA-256
+  `9357641c61ebe83de8b15f98f10a1f33acd1f290419d0242d564ca64740512e1` (download verified), DMG
+  `87e6473f81a1634e8ea599ce8831b8a526b3d528f8d70c89ec466ad088383a39`. Config gains `dragToMove`
+  (Add Missing Settings). Tap commit `tiler 0.7.0`; cask audit clean; scratch install accepted.
+
 - **2026-10-10 — v0.6.0 (build 15).** Move the focused window to the previous/next desktop. 30
   tests passed; app and disk image `status: Accepted`, `source=Notarized Developer ID`. Zip
   SHA-256 `9abd1adbf3caf464cde5a701cd0bc26e6ea97c63549987514e79cf612eb530cb`, DMG
