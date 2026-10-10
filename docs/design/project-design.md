@@ -141,6 +141,14 @@ the user would:
    then tiles it on a tiled target. The window is refocused.
 
 
+### Unminimize all (`unminimizeAll`)
+
+`⌥⌘M` (template) on any desktop: a short-lived `WindowMover` thread for the frontmost app reads
+`kAXWindows` and sets `kAXMinimized` to false on every minimized one, then stops. Tiler observes
+miniaturize but not deminiaturize, so the controller schedules reconciles 0.4 s and 1 s later (the
+Dock's restore animation); on a tiled desktop the restored windows rejoin the layout. Nothing
+restored: a beep.
+
 ### Modifier + drag (`WindowDrag`)
 
 `dragToMove` (template `"alt+cmd"`, `"none"` = off) moves the window under the pointer when the

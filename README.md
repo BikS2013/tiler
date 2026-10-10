@@ -41,6 +41,7 @@ float, and Launch at Login.
 | `⌃⌘R` | Retile: re-read the desktop and rewrite every tile |
 | `⌃⌘/` | Show the keyboard shortcuts overlay (works everywhere) |
 | `⌃⌘M` | Move or resize the focused untiled window with the keyboard (works everywhere, see below) |
+| `⌥⌘M` | Unminimize every minimized window of the frontmost app (works everywhere; on a tiled desktop they rejoin the layout). Replaces the system's ⌥⌘M "Minimize All" in apps that have it; rebind it in Settings if you use that |
 | `⌃⌘,` / `⌃⌘.` | Move the focused window to the previous / next desktop and follow it (works everywhere, see below) |
 
 ### Sending a window to another desktop

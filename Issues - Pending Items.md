@@ -7,8 +7,8 @@
    tiles overlap by ~26 pt. A fix would read back the actual size after a write and shift the
    split ratio, which needs care to avoid oscillation. Seen 2026-10-10.
 2. **Conflicts with other window tools.** Rectangle (`⌃⌥` arrows/letters, `⌃⌥⌘←/→`), the local
-   Hammerspoon config (its `⌘⌥`-drag and Hyper+←/→ desktop move were removed in favour of
-   Tiler's on 2026-10-10), any other `⌘⌥`-drag tool, and a running
+   Hammerspoon config (its `⌘⌥`-drag, Hyper+←/→ desktop move and `⌘⌥M` unminimize were removed
+   in favour of Tiler's on 2026-10-10), any other `⌘⌥`-drag tool, and a running
    HyprMac would act on the same windows or keys. Tiler's defaults avoid the known shortcuts; do
    not tile with Tiler on a desktop HyprMac also manages.
 3. **Drag-resize not yet checked live** (unit-tested via `BSPTree.adoptResize`). Drag-swap was
@@ -37,6 +37,12 @@
     synthetic ⌘⌥ click would be taken as a drag. Not seen; noted 2026-10-10.
 
 ## Completed
+
+- **2026-10-10 — ⌥⌘M unminimizes the frontmost app's windows (0.8.0).** Action `unminimizeAll`
+  (General group, every desktop), replacing the Hammerspoon `⌘⌥M` (removed from `init.lua` and
+  the hotkeys cheatsheet; backup kept outside the repo). Checked live on tiled Desktop 1: two
+  minimized TextEdit windows came back on ⌥⌘M and joined the layout. Note: the default shadows
+  the system's ⌥⌘M "Minimize All" in apps that offer it.
 
 - **2026-10-10 — ⌘⌥ + drag moves a window from anywhere in it (0.7.0).** `WindowDrag`, config
   key `dragToMove` (Settings → General → Drag windows with), replacing the Hammerspoon
@@ -103,6 +109,12 @@
   carry `needsLayout`, set on display changes and config reloads.
 
 ## Release log
+
+- **2026-10-10 — v0.8.0 (build 17).** ⌥⌘M unminimizes the frontmost app's windows. 32 tests
+  passed; app and disk image `status: Accepted`, `source=Notarized Developer ID`. Zip SHA-256
+  `ba4658652acadb977884fcfbbdf6946763fcb2e9677e62aeb4622443dd51b924`, DMG
+  `d9903ad5b052a340a132f1c878869534d2e8ae0bd81878e3d8380d3fc78284c5`. Config gains
+  `hotkeys.unminimizeAll` (Add Missing Settings).
 
 - **2026-10-10 — v0.7.0 (build 16).** ⌥⌘ + drag moves a window from anywhere in it. 31 tests
   passed; app and disk image `status: Accepted`, `source=Notarized Developer ID`. Zip SHA-256

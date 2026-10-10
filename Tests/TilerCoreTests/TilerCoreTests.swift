@@ -222,6 +222,12 @@ final class ConfigTests: XCTestCase {
         XCTAssertEqual(Action.windowToPreviousDesktop.group, .desktops)
     }
 
+    func testUnminimizeWorksEverywhereWithDefaults() {
+        XCTAssertEqual(Config.defaults.hotkeys[.unminimizeAll]?.symbols, "⌥⌘M")
+        XCTAssertTrue(Action.unminimizeAll.worksOnUntiledDesktop)
+        XCTAssertEqual(Action.unminimizeAll.group, .general)
+    }
+
     func testConflicts() {
         let c = Config.defaults
         XCTAssertEqual(c.conflicts(c.hotkeys[.retile]!, for: .equalize), [.retile])

@@ -13,13 +13,14 @@ public enum Action: String, CaseIterable, Codable {
     case retile
     case showHotkeys
     case moveResize
+    case unminimizeAll
     case windowToPreviousDesktop, windowToNextDesktop
 
     /// `toggleDesktop`, `showHotkeys` and `moveResize` stay registered on desktops
     /// Tiler does not tile; every other hotkey is released there so apps keep the key.
     public var worksOnUntiledDesktop: Bool {
         switch self {
-        case .toggleDesktop, .showHotkeys, .moveResize, .windowToPreviousDesktop, .windowToNextDesktop: return true
+        case .toggleDesktop, .showHotkeys, .moveResize, .unminimizeAll, .windowToPreviousDesktop, .windowToNextDesktop: return true
         default: return false
         }
     }
@@ -30,6 +31,7 @@ public enum Action: String, CaseIterable, Codable {
         case .toggleDesktop: return "Tile or untile this desktop"
         case .showHotkeys: return "Show keyboard shortcuts"
         case .moveResize: return "Move or resize an untiled window"
+        case .unminimizeAll: return "Unminimize the app's windows"
         case .windowToPreviousDesktop: return "Move window to previous desktop"
         case .windowToNextDesktop: return "Move window to next desktop"
         case .focusLeft: return "Focus left"
@@ -58,7 +60,7 @@ public enum Action: String, CaseIterable, Codable {
 
     public var group: Group {
         switch self {
-        case .toggleDesktop, .showHotkeys, .moveResize: return .general
+        case .toggleDesktop, .showHotkeys, .moveResize, .unminimizeAll: return .general
         case .windowToPreviousDesktop, .windowToNextDesktop: return .desktops
         case .focusLeft, .focusRight, .focusUp, .focusDown: return .focus
         case .swapLeft, .swapRight, .swapUp, .swapDown: return .swap
@@ -407,6 +409,7 @@ public struct Config: Equatable {
         "retile": "ctrl+cmd+r",
         "showHotkeys": "ctrl+cmd+/",
         "moveResize": "ctrl+cmd+m",
+        "unminimizeAll": "alt+cmd+m",
         "windowToPreviousDesktop": "ctrl+cmd+,",
         "windowToNextDesktop": "ctrl+cmd+."
       }

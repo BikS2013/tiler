@@ -58,8 +58,9 @@ desktops (display + Space) the user turns on. Design: `docs/design/project-desig
 
 - Never touch windows outside a tiled desktop's display **and** Space. Exceptions, all explicit
   user requests on one window: the move/resize mode (`MoveResizeMode`) and moving a window to
-  the previous/next desktop (`DesktopMover`), both on the focused window, and modifier + drag
-  (`WindowDrag`) on the window under the pointer.
+  the previous/next desktop (`DesktopMover`), both on the focused window, unminimizing the
+  frontmost app's windows (`unminimizeAll`), and modifier + drag (`WindowDrag`) on the window
+  under the pointer.
 - Never call Space-mutation APIs. Moving a window to another desktop drives the user's own
   Mission Control shortcut with a synthetic title-bar drag (see `DesktopMover`).
 - No polling. React to AX/NSWorkspace events; hotkeys via Carbon. Only two event taps exist:
@@ -88,4 +89,4 @@ desktops (display + Space) the user turns on. Design: `docs/design/project-desig
 - Release: `TILER_SIGN_IDENTITY=2C7D6068C232BA74073D56085DDBB04E5F14DF30 NOTARY_PROFILE=tiler-notary scripts/package.sh`,
   then `docs/design/release-runbook.md` (GitHub `biks2013-tools/tiler`, tap `biks2013-tools/homebrew-tiler`)
 - Decks: `Project Deck/` (nbg-design skill, BikS2013 theme), published with GitHub Pages
-- `scripts/tiler-ctl.sh toggle active | retile | reload | settings | shortcuts | moveresize | dump`
+- `scripts/tiler-ctl.sh toggle active | retile | reload | settings | shortcuts | moveresize | unminimize | nextdesktop | previousdesktop | dump`

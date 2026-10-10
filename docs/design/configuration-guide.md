@@ -36,10 +36,12 @@ action only. Unknown actions or keys are errors.
 Actions: `toggleDesktop`, `focusLeft/Right/Up/Down`, `swapLeft/Right/Up/Down`,
 `resizeLeft/Right/Up/Down`, `toggleFloat`, `toggleSplit`, `mirror`, `equalize`, `retile`,
 `showHotkeys` (template `ctrl+cmd+/`, opens the shortcuts overlay), `moveResize` (template
-`ctrl+cmd+m`, starts the move/resize mode for the focused untiled window),
+`ctrl+cmd+m`, starts the move/resize mode for the focused untiled window), `unminimizeAll`
+(template `alt+cmd+m`, restores every minimized window of the frontmost app; it takes over the
+system's ⌥⌘M "Minimize All" in apps that have it),
 `windowToPreviousDesktop` / `windowToNextDesktop` (templates `ctrl+cmd+,` / `ctrl+cmd+.`, carry the
-focused window to the neighbouring desktop). `toggleDesktop`, `showHotkeys`, `moveResize` and the
-two desktop moves work on every desktop; the rest only while a tiled desktop has focus.
+focused window to the neighbouring desktop). `toggleDesktop`, `showHotkeys`, `moveResize`, `unminimizeAll`
+and the two desktop moves work on every desktop; the rest only while a tiled desktop has focus.
 
 The desktop moves also depend on a macOS setting outside Tiler: System Settings → Keyboard →
 Keyboard Shortcuts → Mission Control → **Move left a space** / **Move right a space** must be on

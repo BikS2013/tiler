@@ -37,7 +37,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
 const RECORD = {
-  "generated": "2026-10-10T15:58:09.234Z",
+  "generated": "2026-10-10T16:08:49.871Z",
   "deck": "tiler-engineers.html",
   "pdf": "tiler-engineers.pdf",
   "scriptsDir": "/Users/giorgosmarinos/.claude/plugins/cache/nbg-design/nbg-design/1.25.0/skills/nbg-design/scripts",

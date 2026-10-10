@@ -238,6 +238,23 @@ final class WindowMover {
         }
     }
 
+    /// Unminimize every minimized window of the app; the completion gets how many.
+    func unminimizeAll(_ completion: @escaping (Int) -> Void) {
+        thread.perform { [self] in
+            let app = AXUIElementCreateApplication(pid)
+            AXUIElementSetMessagingTimeout(app, 1.0)
+            var value: AnyObject?
+            var count = 0
+            if AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &value) == .success,
+               let windows = value as? [AXUIElement] {
+                for w in windows where AppHandle.bool(w, kAXMinimizedAttribute) == true {
+                    if AXUIElementSetAttributeValue(w, kAXMinimizedAttribute as CFString, kCFBooleanFalse) == .success { count += 1 }
+                }
+            }
+            DispatchQueue.main.async { completion(count) }
+        }
+    }
+
     func stop() { thread.stop() }
 }
 

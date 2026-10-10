@@ -64,7 +64,7 @@ final class Controller {
     /// so Settings and `tiler-ctl.sh` work from the first launch.
     func prepare() {
         reloadConfig()
-        // Scripting hook: `scripts/tiler-ctl.sh toggle <display-uuid|active>`, `retile`, `reload`, `settings`, `shortcuts`, `moveresize`, `nextdesktop`, `previousdesktop`, `dump`.
+        // Scripting hook: `scripts/tiler-ctl.sh toggle <display-uuid|active>`, `retile`, `reload`, `settings`, `shortcuts`, `moveresize`, `unminimize`, `nextdesktop`, `previousdesktop`, `dump`.
         DistributedNotificationCenter.default().addObserver(forName: Notification.Name("com.giorgosmarinos.tiler.command"),
                                                             object: nil, queue: .main) { [weak self] n in
             self?.command(n.object as? String ?? "")
@@ -133,6 +133,8 @@ final class Controller {
             onShowHotkeys?()
         case "moveresize":
             onMoveResize?()
+        case "unminimize":
+            unminimizeFrontApp()
         case "nextdesktop":
             onMoveToDesktop?(true)
         case "previousdesktop":
@@ -198,6 +200,24 @@ final class Controller {
             log.error("could not write config: \(error.localizedDescription)")
         }
         reloadConfig()
+    }
+
+    // MARK: Unminimize
+
+    /// Bring back every minimized window of the frontmost app (any desktop).
+    /// Restored windows land on a tiled desktop's layout through reconcile,
+    /// once the Dock's animation has put them back on screen.
+    private func unminimizeFrontApp() {
+        guard started, let app = NSWorkspace.shared.frontmostApplication, app.processIdentifier != myPID else { return }
+        let mover = WindowMover(pid: app.processIdentifier)
+        mover.unminimizeAll { [weak self] count in
+            mover.stop()
+            guard let self else { return }
+            if count == 0 { NSSound.beep(); return }
+            for delay in [0.4, 1.0] {
+                DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in self?.scheduleReconcile() }
+            }
+        }
     }
 
     // MARK: Desktops
@@ -755,6 +775,9 @@ final class Controller {
         case .windowToPreviousDesktop, .windowToNextDesktop:
             onMoveToDesktop?(action == .windowToNextDesktop)
             return
+        case .unminimizeAll:
+            unminimizeFrontApp()
+            return
         default:
             break
         }
@@ -811,7 +834,7 @@ final class Controller {
             rechecked.removeAll()
             layout(d)
             reconcile()
-        case .toggleDesktop, .showHotkeys, .moveResize, .windowToPreviousDesktop, .windowToNextDesktop:
+        case .toggleDesktop, .showHotkeys, .moveResize, .unminimizeAll, .windowToPreviousDesktop, .windowToNextDesktop:
             break
         }
     }
