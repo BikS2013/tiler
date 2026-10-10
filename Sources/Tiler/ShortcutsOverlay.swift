@@ -73,11 +73,16 @@ private struct ShortcutsView: View {
                     .frame(width: 290, alignment: .leading)
                 }
             }
-            Text("Drag a tile onto another to swap them · drag an edge to resize · Esc or click to close")
+            Text(mouseHints)
                 .font(.caption).foregroundStyle(.tertiary)
         }
         .padding(24)
         .fixedSize()
+    }
+
+    private var mouseHints: String {
+        let drag = config.dragToMove.map { "\(KeyCombo.symbols(modifiers: $0)) + drag anywhere in a window to move it · " } ?? ""
+        return drag + "Drag a tile onto another to swap them · drag an edge to resize · Esc or click to close"
     }
 
     private var status: String {

@@ -108,7 +108,7 @@ table.t td:first-child{font-weight:600;color:var(--ink)}
     <rect x="100" y="0" width="88" height="88" rx="10" fill="#F6F3EC" opacity=".82"/>
     <rect x="100" y="100" width="88" height="88" rx="10" fill="#F6F3EC" opacity=".82"/>
   </svg>
-  <div class="eyebrow" style="top:140px">Engineering deep-dive · Tiler v0.6.0</div>
+  <div class="eyebrow" style="top:140px">Engineering deep-dive · Tiler v0.7.0</div>
   <div style="position:absolute;top:250px;left:90px;right:480px;font-size:124px;line-height:.96;font-weight:300;letter-spacing:-2px;color:var(--paper)">
     Tiler<br><span style="color:var(--copper-l);font-style:italic;font-weight:400">one desktop at a time.</span>
   </div>
@@ -167,9 +167,9 @@ table.t td:first-child{font-weight:600;color:var(--ink)}
     <div class="card">
       <h3>The hard rules</h3>
       <ul class="clean" style="margin-top:18px">
-        <li>Never touch a window outside a tiled desktop's display <b>and</b> Space — except the focused window when the user asks (move/resize mode, move to another desktop).</li>
+        <li>Never touch a window outside a tiled desktop's display <b>and</b> Space — except one window the user explicitly acts on (move/resize mode, move to another desktop, ⌘⌥-drag).</li>
         <li>Never call Space-mutation APIs; moving a window to another desktop drives the system's own Mission Control shortcut.</li>
-        <li>No polling, no active event tap: react to AX and NSWorkspace events. Focus follows mouse uses a listen-only mouse tap, only while it is on.</li>
+        <li>No polling, never a keyboard tap: react to AX and NSWorkspace events. Focus follows mouse uses a listen-only mouse tap; ⌘⌥-drag one active tap for left-button events only, on its own thread.</li>
         <li>Every AX call for an app runs on that app's own thread.</li>
         <li>Act on moved/resized notifications only while the mouse is down.</li>
         <li>Every config key is required; no silent defaults.</li>
@@ -1097,7 +1097,7 @@ scripts/tiler-ctl.sh retile | moveresize | dump</pre>
   <div style="position:absolute;left:90px;right:90px;bottom:80px;display:flex;align-items:flex-end;justify-content:space-between">
     <span class="lg lg-knockout lg-hero" role="img" aria-label="BikS2013"></span>
     <div style="font-size:18px;letter-spacing:.4px;color:rgba(246,243,236,.7);text-align:right;line-height:1.55">
-      <div>BikS2013 · Tiler v0.6.0 · MIT license</div>
+      <div>BikS2013 · Tiler v0.7.0 · MIT license</div>
       <div class="mono">brew install --cask tiler</div>
     </div>
   </div>

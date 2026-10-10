@@ -56,19 +56,23 @@ desktops (display + Space) the user turns on. Design: `docs/design/project-desig
 
 ## Hard rules
 
-- Never touch windows outside a tiled desktop's display **and** Space. Exceptions, both explicit
-  requests on the focused window only: the move/resize mode (`MoveResizeMode`) and moving a
-  window to the previous/next desktop (`DesktopMover`).
+- Never touch windows outside a tiled desktop's display **and** Space. Exceptions, all explicit
+  user requests on one window: the move/resize mode (`MoveResizeMode`) and moving a window to
+  the previous/next desktop (`DesktopMover`), both on the focused window, and modifier + drag
+  (`WindowDrag`) on the window under the pointer.
 - Never call Space-mutation APIs. Moving a window to another desktop drives the user's own
   Mission Control shortcut with a synthetic title-bar drag (see `DesktopMover`).
-- No polling and no active `CGEventTap`. React to AX/NSWorkspace events; hotkeys via Carbon. The
-  only tap is focus-follows-mouse's listen-only mouse-moved tap, present only while that setting
-  is on and a desktop is tiled, and switched off while the pointer is being tracked (a bounded
-  40 ms check that runs only while the mouse moves).
+- No polling. React to AX/NSWorkspace events; hotkeys via Carbon. Only two event taps exist:
+  focus-follows-mouse's listen-only mouse-moved tap (present only while that setting is on and a
+  desktop is tiled, switched off while the pointer is tracked by a bounded 40 ms check), and
+  `WindowDrag`'s active tap for left-button down/dragged/up only (present only while
+  `dragToMove` is set), on its own thread, whose callback does no AX or other blocking work.
+  Never add a keyboard tap.
 - Floating windows are saved with their owner pid; never trust a saved window id without it.
 - All AX calls for an app run on that app's `AppHandle` thread (or, for the move/resize mode,
   the `WindowMover` thread), never on the main thread.
-- Act on window moved/resized notifications only while the mouse button is down.
+- Act on window moved/resized notifications only while the mouse button is down (or a
+  `WindowDrag` is active: its swallowed press never shows as a pressed button).
 - Config keys are all required; never add silent defaults (see `Config.parse`). Settings writes
   the file through `Controller.save` (validate, write atomically, reload); it is never a second
   source of truth.

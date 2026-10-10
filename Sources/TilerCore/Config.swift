@@ -102,13 +102,26 @@ public struct KeyCombo: Hashable, CustomStringConvertible {
     /// The macOS spelling, e.g. "⌃⌘←".
     public var symbols: String { modifierSymbols + keySymbol }
 
-    public var modifierSymbols: String {
+    public var modifierSymbols: String { Self.symbols(modifiers: carbonModifiers) }
+
+    /// "⌃⌥⇧⌘" for a Carbon modifier mask, in macOS order.
+    public static func symbols(modifiers: UInt32) -> String {
         var s = ""
-        if carbonModifiers & Self.controlKey != 0 { s += "⌃" }
-        if carbonModifiers & Self.optionKey != 0 { s += "⌥" }
-        if carbonModifiers & Self.shiftKey != 0 { s += "⇧" }
-        if carbonModifiers & Self.cmdKey != 0 { s += "⌘" }
+        if modifiers & controlKey != 0 { s += "⌃" }
+        if modifiers & optionKey != 0 { s += "⌥" }
+        if modifiers & shiftKey != 0 { s += "⇧" }
+        if modifiers & cmdKey != 0 { s += "⌘" }
         return s
+    }
+
+    /// "ctrl+alt+shift+cmd" for a Carbon modifier mask (the config spelling).
+    public static func text(modifiers: UInt32) -> String {
+        var parts: [String] = []
+        if modifiers & controlKey != 0 { parts.append("ctrl") }
+        if modifiers & optionKey != 0 { parts.append("alt") }
+        if modifiers & shiftKey != 0 { parts.append("shift") }
+        if modifiers & cmdKey != 0 { parts.append("cmd") }
+        return parts.joined(separator: "+")
     }
 
     public var keySymbol: String {
@@ -128,12 +141,7 @@ public struct KeyCombo: Hashable, CustomStringConvertible {
     }
 
     private static func canonical(name: String, mods: UInt32) -> String {
-        var parts: [String] = []
-        if mods & controlKey != 0 { parts.append("ctrl") }
-        if mods & optionKey != 0 { parts.append("alt") }
-        if mods & shiftKey != 0 { parts.append("shift") }
-        if mods & cmdKey != 0 { parts.append("cmd") }
-        return (parts + [name]).joined(separator: "+")
+        mods == 0 ? name : text(modifiers: mods) + "+" + name
     }
 
     public static func == (a: KeyCombo, b: KeyCombo) -> Bool {
@@ -147,18 +155,18 @@ public struct KeyCombo: Hashable, CustomStringConvertible {
         guard let keyName = parts.last, !keyName.isEmpty else { throw ConfigError.badHotkey(raw, "empty") }
         var mods: UInt32 = 0
         for part in parts.dropLast() {
-            switch part {
-            case "cmd", "command": mods |= cmdKey
-            case "shift": mods |= shiftKey
-            case "alt", "opt", "option": mods |= optionKey
-            case "ctrl", "control": mods |= controlKey
-            default: throw ConfigError.badHotkey(raw, "unknown modifier '\(part)'")
-            }
+            guard let bit = modifierBits[part] else { throw ConfigError.badHotkey(raw, "unknown modifier '\(part)'") }
+            mods |= bit
         }
         guard mods != 0 else { throw ConfigError.badHotkey(raw, "needs at least one modifier") }
         guard let code = keyCodes[keyName] else { throw ConfigError.badHotkey(raw, "unknown key '\(keyName)'") }
         return KeyCombo(keyCode: code, carbonModifiers: mods, text: raw)
     }
+
+    static let modifierBits: [String: UInt32] = [
+        "cmd": cmdKey, "command": cmdKey, "shift": shiftKey,
+        "alt": optionKey, "opt": optionKey, "option": optionKey, "ctrl": controlKey, "control": controlKey,
+    ]
 
     /// ANSI virtual key codes (HIToolbox/Events.h, kVK_*).
     static let keyCodes: [String: UInt32] = [
@@ -219,9 +227,13 @@ public struct Config: Equatable {
     public let focusFollowsMouse: Bool
     /// How long the pointer must rest before focus follows it (0.05...1 s).
     public let focusDelay: Double
+    /// The modifiers (Carbon mask) that, held while pressing the mouse button,
+    /// drag the window under the pointer from anywhere in it. Nil = off.
+    public let dragToMove: UInt32?
 
     public init(innerGap: Double, outerGap: Double, resizeStep: Double, floatingApps: Set<String>, hotkeys: [Action: KeyCombo],
-                focusFollowsMouse: Bool, focusDelay: Double) {
+                focusFollowsMouse: Bool, focusDelay: Double, dragToMove: UInt32?) {
+        self.dragToMove = dragToMove
         self.focusFollowsMouse = focusFollowsMouse
         self.focusDelay = focusDelay
         self.innerGap = innerGap
@@ -256,6 +268,7 @@ public struct Config: Equatable {
           "resizeStep": \(num(resizeStep)),
           "focusFollowsMouse": \(focusFollowsMouse),
           "focusDelay": \(num(focusDelay)),
+          "dragToMove": \(str(dragToMove.map { KeyCombo.text(modifiers: $0) } ?? "none")),
           "floatingApps": [\(apps.isEmpty ? "" : "\n" + apps + "\n  ")],
           "hotkeys": {
         \(keys)
@@ -292,7 +305,25 @@ public struct Config: Equatable {
     }
 
     public static let topLevelKeys: Set<String> = ["innerGap", "outerGap", "resizeStep", "focusFollowsMouse", "focusDelay",
-                                                   "floatingApps", "hotkeys"]
+                                                   "dragToMove", "floatingApps", "hotkeys"]
+
+    /// Parse the `dragToMove` value: "none", or modifiers such as "alt+cmd".
+    /// Shift alone is refused: shift-click extends selections everywhere.
+    public static func parseDragModifiers(_ raw: String) throws -> UInt32? {
+        let text = raw.lowercased().trimmingCharacters(in: .whitespaces)
+        if text == "none" { return nil }
+        var mods: UInt32 = 0
+        for part in text.split(separator: "+").map({ $0.trimmingCharacters(in: .whitespaces) }) {
+            guard let bit = KeyCombo.modifierBits[part] else {
+                throw ConfigError.badValue("dragToMove", "unknown modifier '\(part)' (use ctrl, alt, shift, cmd, or \"none\")")
+            }
+            mods |= bit
+        }
+        guard mods & (KeyCombo.cmdKey | KeyCombo.optionKey | KeyCombo.controlKey) != 0 else {
+            throw ConfigError.badValue("dragToMove", "needs cmd, alt or ctrl (or \"none\")")
+        }
+        return mods
+    }
 
     public static func parse(_ data: Data) throws -> Config {
         let object: Any
@@ -316,6 +347,9 @@ public struct Config: Equatable {
             throw ConfigError.badValue("focusFollowsMouse", "must be true or false")
         }
         let delay = try number("focusDelay", 0.05...1)
+        guard let rawDrag = dict["dragToMove"] else { throw ConfigError.missingKey("dragToMove") }
+        guard let dragText = rawDrag as? String else { throw ConfigError.badValue("dragToMove", "must be a string such as \"alt+cmd\" or \"none\"") }
+        let drag = try parseDragModifiers(dragText)
         let outer = try number("outerGap", 0...400)
         let step = try number("resizeStep", 0.01...0.5)
 
@@ -335,7 +369,7 @@ public struct Config: Equatable {
             hotkeys[action] = combo
         }
         return Config(innerGap: inner, outerGap: outer, resizeStep: step, floatingApps: Set(apps), hotkeys: hotkeys,
-                      focusFollowsMouse: follow, focusDelay: delay)
+                      focusFollowsMouse: follow, focusDelay: delay, dragToMove: drag)
     }
 
     /// The file written on first launch. Edit it and choose "Reload Config".
@@ -346,6 +380,7 @@ public struct Config: Equatable {
       "resizeStep": 0.05,
       "focusFollowsMouse": false,
       "focusDelay": 0.15,
+      "dragToMove": "alt+cmd",
       "floatingApps": [
         "com.apple.systempreferences",
         "com.apple.ActivityMonitor",

@@ -1,6 +1,6 @@
 cask "tiler" do
-  version "0.6.0"
-  sha256 "9abd1adbf3caf464cde5a701cd0bc26e6ea97c63549987514e79cf612eb530cb"
+  version "0.7.0"
+  sha256 "9357641c61ebe83de8b15f98f10a1f33acd1f290419d0242d564ca64740512e1"
 
   url "https://github.com/biks2013-tools/tiler/releases/download/v#{version}/Tiler-#{version}.zip"
   name "Tiler"

@@ -6,7 +6,7 @@ desktop (Space) is left exactly as it is.
 
 It does the core job of [HyprMac](https://github.com/BikS2013-forks/HyprMac): Hyprland-style BSP
 "dwindle" tiling with keyboard focus, swap and resize, and mouse drag-to-swap and drag-to-resize.
-It does this in about 3,700 lines (Settings, the shortcuts overlay, the move/resize mode and focus follows mouse included) instead of 35,000, with no polling, no keyboard event tap and no
+It does this in about 3,700 lines (Settings, the shortcuts overlay, the move/resize mode, focus follows mouse and ⌘⌥-drag included) instead of 35,000, with no polling, no keyboard event tap and no
 virtual workspaces.
 
 ## Use it
@@ -55,6 +55,18 @@ do by hand: it holds the window by its title bar and presses your Mission Contro
 **Move left/right a space**. Keep those two shortcuts turned on in System Settings → Keyboard →
 Keyboard Shortcuts → Mission Control (they are on by default; a customised key is fine). Tiler
 says so if there is no desktop on that side, or if it is a full-screen app's space.
+
+### Drag a window from anywhere in it
+
+Hold `⌘⌥` and drag anywhere inside a window to move it, on any desktop, tiled or not. The click
+never reaches the app, so nothing gets selected, opened or typed. On a tiled desktop a tiled
+window behaves as if you dragged its title bar: drop it on another tile to swap them, anywhere
+else and it snaps back. Pick other keys (`⌃⌘`, `⌃⌥`, …) or turn it off in Settings → General →
+**Drag windows with** (config key `dragToMove`).
+
+This is Tiler's only active event tap. It sees left-button presses, drags and releases only (no
+key presses, no plain mouse moves), runs on its own thread, and lets every click without the
+keys through untouched.
 
 ### Focus follows mouse
 

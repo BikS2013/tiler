@@ -115,7 +115,8 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         do {
             try controller.save(Config(innerGap: c.innerGap, outerGap: c.outerGap, resizeStep: c.resizeStep,
                                        floatingApps: c.floatingApps, hotkeys: c.hotkeys,
-                                       focusFollowsMouse: !c.focusFollowsMouse, focusDelay: c.focusDelay))
+                                       focusFollowsMouse: !c.focusFollowsMouse, focusDelay: c.focusDelay,
+                                       dragToMove: c.dragToMove))
         } catch {
             log.error("could not save config: \(error.localizedDescription)")
             NSSound.beep()

@@ -20,8 +20,8 @@ if [[ -z "${TILER_SIGN_IDENTITY:-}" ]]; then
   exit 1
 fi
 
-VERSION="0.6.0"
-BUILD="15"
+VERSION="0.7.0"
+BUILD="16"
 APP="build/Tiler.app"
 
 swift build -c release --arch arm64 --arch x86_64

@@ -310,5 +310,25 @@ final class ConfigUpgradeTests: XCTestCase {
         XCTAssertTrue(c.focusFollowsMouse)
         XCTAssertEqual(try Config.parse(Data(c.json().utf8)), c)
     }
+
+    func testDragToMoveModifiers() throws {
+        XCTAssertEqual(Config.defaults.dragToMove, KeyCombo.optionKey | KeyCombo.cmdKey)
+        var dict = try JSONSerialization.jsonObject(with: Data(Config.template.utf8)) as! [String: Any]
+        for bad: Any in ["shift", "cmd+hyper", "", true] {
+            dict["dragToMove"] = bad
+            XCTAssertThrowsError(try Config.parse(try JSONSerialization.data(withJSONObject: dict)), "\(bad)")
+        }
+        dict["dragToMove"] = "none"
+        XCTAssertNil(try Config.parse(try JSONSerialization.data(withJSONObject: dict)).dragToMove)
+        dict["dragToMove"] = "cmd+ctrl"
+        let c = try Config.parse(try JSONSerialization.data(withJSONObject: dict))
+        XCTAssertEqual(c.dragToMove, KeyCombo.controlKey | KeyCombo.cmdKey)
+        XCTAssertTrue(c.json().contains("\"dragToMove\": \"ctrl+cmd\""))
+        XCTAssertEqual(try Config.parse(Data(c.json().utf8)), c)
+        dict["dragToMove"] = nil
+        XCTAssertThrowsError(try Config.parse(try JSONSerialization.data(withJSONObject: dict)))
+        let upgraded = try Config.addingMissingSettings(to: try JSONSerialization.data(withJSONObject: dict))
+        XCTAssertEqual(upgraded.added, ["dragToMove"])
+    }
 }
 

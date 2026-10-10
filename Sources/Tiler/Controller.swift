@@ -397,7 +397,7 @@ final class Controller {
             if id == movingWindow { return }
             if let d = desktops.values.first(where: { $0.floating[id] != nil }) { captureFloatingFrame(id, on: d) }
             let tiled = desktops.values.first { $0.tree.contains(id) }
-            if NSEvent.pressedMouseButtons & 1 != 0 {
+            if userDragging {
                 // A user drag: act once the button is released.
                 if drag == nil { beginDrag(of: id, on: tiled) }
             } else if tiled == nil {
@@ -561,9 +561,13 @@ final class Controller {
 
     // MARK: Mouse drags
 
+    /// The mouse button is down on a window (title bar or edge), or a
+    /// modifier + drag is moving one (its press never reaches the system).
+    private var userDragging: Bool { NSEvent.pressedMouseButtons & 1 != 0 || windowDrag.isActive }
+
     private func beginDrag(of id: CGWindowID, on d: Desktop?) {
         let timer = Timer(timeInterval: 0.03, repeats: true) { [weak self] _ in
-            guard NSEvent.pressedMouseButtons & 1 == 0 else { return }
+            guard self?.userDragging == false else { return }
             self?.endDrag()
         }
         RunLoop.main.add(timer, forMode: .common)
@@ -610,6 +614,7 @@ final class Controller {
     ///   second however fast it reports, instead of one per event.
     /// - Once the pointer has not moved for `focusDelay`, the window under it is
     ///   focused if needed, the check stops and the tap is switched back on.
+    private let windowDrag = WindowDrag()
     private var mouseTap: CFMachPort?
     private var mouseTapSource: CFRunLoopSource?
     private var trackTimer: Timer?
@@ -617,6 +622,8 @@ final class Controller {
     private var lastMove: CFTimeInterval = 0
 
     private func updateMouseMonitor() {
+        // Modifier + drag works on every desktop, tiled or not, once Tiler runs.
+        windowDrag.configure(started ? config?.dragToMove : nil)
         let want = started && config?.focusFollowsMouse == true && !desktops.isEmpty
         if want, mouseTap == nil {
             let mask = CGEventMask(1 << CGEventType.mouseMoved.rawValue)
@@ -676,7 +683,7 @@ final class Controller {
     /// visible tiled desktop there and is not focused already. One window-list
     /// read (about a millisecond); nothing at all when the pointer is elsewhere.
     private func pointerRested() {
-        guard NSEvent.pressedMouseButtons == 0, drag == nil, transientUIActive?() != true,
+        guard NSEvent.pressedMouseButtons == 0, !windowDrag.isActive, drag == nil, transientUIActive?() != true,
               let mouse = CGEvent(source: nil)?.location,
               let screen = Screen.all().first(where: { $0.bounds.contains(mouse) }),
               let d = visibleDesktop(onDisplay: screen.uuid),

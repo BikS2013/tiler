@@ -7,7 +7,8 @@
    tiles overlap by ~26 pt. A fix would read back the actual size after a write and shift the
    split ratio, which needs care to avoid oscillation. Seen 2026-10-10.
 2. **Conflicts with other window tools.** Rectangle (`⌃⌥` arrows/letters, `⌃⌥⌘←/→`), the local
-   Hammerspoon config (Hyper+←/→ moves the window to the adjacent Space) and a running
+   Hammerspoon config (Hyper+←/→ moves the window to the adjacent Space; its `⌘⌥`-drag was
+   removed in favour of Tiler's), any other `⌘⌥`-drag tool, and a running
    HyprMac would act on the same windows or keys. Tiler's defaults avoid the known shortcuts; do
    not tile with Tiler on a desktop HyprMac also manages.
 3. **Drag-resize not yet checked live** (unit-tested via `BSPTree.adoptResize`). Drag-swap was
@@ -31,7 +32,20 @@
     says "The window did not move". It also needs the Mission Control "Move left/right a space"
     shortcuts on. Your Hammerspoon Hyper+←/→ does the same thing; either can stay.
 
+11. **Modifier + drag and synthetic clicks.** `WindowDrag` lets Tiler's own synthetic events
+    through (the desktop mover posts with no modifiers anyway), but another tool posting a
+    synthetic ⌘⌥ click would be taken as a drag. Not seen; noted 2026-10-10.
+
 ## Completed
+
+- **2026-10-10 — ⌘⌥ + drag moves a window from anywhere in it (0.7.0).** `WindowDrag`, config
+  key `dragToMove` (Settings → General → Drag windows with), replacing the Hammerspoon
+  `windowDragTap` (removed from `~/.hammerspoon/init.lua` and its hotkeys cheatsheet; backup kept
+  outside the repo). First build moved tiled windows without snapping back: the swallowed press
+  never reaches the window server, so `NSEvent.pressedMouseButtons` reads 0; fixed by
+  `WindowDrag.isActive` feeding the controller's `userDragging`. Checked live: TextEdit moved by
+  exactly the drag (−300, −200) with no text selected; plain drags and ⌃⌘ / ⌃⌥⌘ drags reached the
+  app; on tiled Desktop 1 a drop on another tile swapped, a short drag snapped back; 0 CPU idle.
 
 - **2026-10-10 — Move the focused window to the previous/next desktop (0.6.0).** `DesktopMover`,
   `⌃⌘,` / `⌃⌘.`. Checked live on the main display: untiled Desktop 3 → 4 → 3 → 2 → tiled

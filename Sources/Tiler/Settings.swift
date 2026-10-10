@@ -103,14 +103,16 @@ final class SettingsModel: ObservableObject {
         var hotkeys: [Action: KeyCombo]
         var focusFollowsMouse: Bool
         var focusDelay: Double
+        var dragToMove: UInt32?
         init(_ c: Config) {
             innerGap = c.innerGap; outerGap = c.outerGap; resizeStep = c.resizeStep
             floatingApps = c.floatingApps; hotkeys = c.hotkeys
             focusFollowsMouse = c.focusFollowsMouse; focusDelay = c.focusDelay
+            dragToMove = c.dragToMove
         }
         var config: Config {
             Config(innerGap: innerGap, outerGap: outerGap, resizeStep: resizeStep, floatingApps: floatingApps, hotkeys: hotkeys,
-                   focusFollowsMouse: focusFollowsMouse, focusDelay: focusDelay)
+                   focusFollowsMouse: focusFollowsMouse, focusDelay: focusDelay, dragToMove: dragToMove)
         }
     }
 }
@@ -224,6 +226,14 @@ private struct GeneralPane: View {
     @EnvironmentObject var model: SettingsModel
     @State private var confirmRestore = false
 
+    /// The usual window-drag modifiers, plus whatever the config file has.
+    private var dragChoices: [UInt32] {
+        let c = KeyCombo.controlKey, o = KeyCombo.optionKey, s = KeyCombo.shiftKey, m = KeyCombo.cmdKey
+        var list = [o | m, c | m, c | o, c | o | m, o | s | m]
+        if let current = model.config.dragToMove, !list.contains(current) { list.append(current) }
+        return list
+    }
+
     var body: some View {
         Form {
             ConfigErrorBanner()
@@ -240,6 +250,21 @@ private struct GeneralPane: View {
                 Text("Focus")
             } footer: {
                 Footnote("On tiled desktops, the window under the pointer gets focus once the pointer rests for the delay. Menus, popovers and floating windows on top are respected, and nothing happens on desktops Tiler does not tile.")
+            }
+            Section {
+                Picker("Drag windows with", selection: Binding(get: { model.config.dragToMove ?? 0 },
+                                                              set: { v in model.update { $0.dragToMove = v == 0 ? nil : v } })) {
+                    Text("Off").tag(UInt32(0))
+                    Divider()
+                    ForEach(dragChoices, id: \.self) { mods in
+                        Text(verbatim: "\(KeyCombo.symbols(modifiers: mods)) + drag").tag(mods)
+                    }
+                }
+                .disabled(!model.editable)
+            } header: {
+                Text("Drag")
+            } footer: {
+                Footnote("Hold the keys and drag anywhere inside a window to move it, on any desktop. The click never reaches the app. On a tiled desktop, drop a tiled window on another tile to swap them.")
             }
             Section {
                 LabeledContent("Accessibility") {

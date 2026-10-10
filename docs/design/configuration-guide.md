@@ -22,6 +22,7 @@ valid configuration (with none, nothing tiles).
 | `resizeStep` | number, 0.01–0.5 | 0.05 | Share of a split moved by one resize keypress. |
 | `focusFollowsMouse` | `true` / `false` | `false` | On tiled desktops, focus the window under the pointer once it rests. Also toggled from the menu and Settings → General. |
 | `focusDelay` | number (seconds), 0.05–1 | 0.15 | How long the pointer must rest before focus follows it. Lower feels snappier; higher avoids focusing windows you only cross. |
+| `dragToMove` | string: modifiers (`ctrl`, `alt`, `shift`, `cmd`, joined with `+`) or `"none"` | `"alt+cmd"` | Hold these and drag anywhere inside a window to move it, on any desktop. Needs `cmd`, `alt` or `ctrl` (shift alone is refused: shift-click extends selections). `"none"` turns it off. Also set in Settings → General → Drag windows with. |
 | `floatingApps` | array of bundle ids | System Settings, Activity Monitor, Calculator | Apps whose windows are never tiled. Find an id with `osascript -e 'id of app "Name"'`. |
 | `hotkeys` | object, every action required | see below | Action → key combination, or `"none"` to unbind. |
 

@@ -9,7 +9,7 @@ individual macOS desktops: one (display, Space) pair at a time, chosen by the us
 - Never read, move or resize a window on another display or another desktop. The exceptions are
   explicit user requests on the focused window: the move/resize mode, and moving a window to the
   previous/next desktop.
-- Fast and light: no polling, no keyboard event tap, no work at all while nothing is tiled.
+- Fast and light: no polling, no keyboard event tap, no work at all while nothing is tiled (the ⌘⌥-drag tap runs only when a mouse button is pressed).
 - Few moving parts, so few bugs.
 
 ## What was deliberately left out (compared with HyprMac)
@@ -140,6 +140,40 @@ the user would:
    if it floated and the target desktop is tiled, it floats there with the same frame. Reconcile
    then tiles it on a tiled target. The window is refocused.
 
+
+### Modifier + drag (`WindowDrag`)
+
+`dragToMove` (template `"alt+cmd"`, `"none"` = off) moves the window under the pointer when the
+user drags anywhere inside it with those modifiers held, on any desktop. It is Tiler's one active
+`CGEventTap`, kept as cheap as possible:
+
+1. **Tap.** `.cgSessionEventTap`, head insert, default (filtering) options, for `leftMouseDown`,
+   `leftMouseDragged` and `leftMouseUp` only: no key events, no plain mouse moves. It lives on its
+   own `RunLoopThread` ("tiler.drag.tap"), so a busy main thread never delays anyone's clicks. The
+   callback compares the event's cmd/alt/ctrl/shift flags with the configured set (exact match),
+   ignores Tiler's own synthetic events (the desktop mover's drag), records the point under a
+   lock and returns. A matching press and the drag/release that follow are swallowed (the app
+   never sees the click); everything else passes untouched. A tap disabled by timeout is
+   re-enabled from the callback.
+2. **Window.** On a second thread ("tiler.drag.ax"), `AXUIElementCopyElementAtPosition` on the
+   system-wide element (0.5 s timeout) → its `AXWindow`; accepted only if it is a standard,
+   non-full-screen window of another app with a settable position. It is focused
+   (`focusWindow`).
+3. **Moves.** Each drag event stores the newest pointer position; the AX thread writes
+   `origin + (pointer − press)` as the window position and loops until nothing newer is pending,
+   so writes are coalesced to the app's speed. A release that comes before the window is found
+   still gets its final position.
+4. **Tiling.** The swallowed press never reaches the window server, so `NSEvent.pressedMouseButtons`
+   stays 0 during such a drag. `WindowDrag.isActive` (main thread; true from grab until the last
+   write) is ORed into the controller's `userDragging`, so a tiled window's moves start the usual
+   drag handling and the release swaps it with the tile under the pointer or snaps it back; a
+   floating window's frame is captured as for any drag.
+
+Measured: 0 CPU at rest (no callback runs without a click). Checked live: an untiled move by
+exactly the drag distance with no text selected in TextEdit; plain drags and other modifier sets
+reach the app; on a tiled desktop a drop on another tile swaps, a short drag snaps back.
+
+### Focus follows mouse
 
 Optional (`focusFollowsMouse`, off in the template; delay `focusDelay`). Designed so it costs
 nothing at rest and almost nothing in motion:
