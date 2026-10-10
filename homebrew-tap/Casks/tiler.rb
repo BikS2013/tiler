@@ -1,6 +1,6 @@
 cask "tiler" do
-  version "0.5.0"
-  sha256 "2b3c91eda14a30b138e9b6e794ab97f0b24bfe1768157e79b85d6774ea3a01e7"
+  version "0.6.0"
+  sha256 "9abd1adbf3caf464cde5a701cd0bc26e6ea97c63549987514e79cf612eb530cb"
 
   url "https://github.com/biks2013-tools/tiler/releases/download/v#{version}/Tiler-#{version}.zip"
   name "Tiler"
@@ -34,6 +34,8 @@ cask "tiler" do
     Show every shortcut: Ctrl+Cmd+/   Settings: menu bar icon > Settings...
     Move or resize any untiled window with the keyboard: Ctrl+Cmd+M, then arrows
     (Shift resizes, Option = fine, C centre, M fill, Return done).
+    Move the focused window to the previous / next desktop: Ctrl+Cmd+, / Ctrl+Cmd+.
+    (keep Mission Control "Move left/right a space" shortcuts turned on).
     Focus follows mouse (optional): menu bar icon > Focus Follows Mouse.
     Upgrading: Settings > General > Add Missing Settings (adds new settings only).
     Launch at login: Settings > General.

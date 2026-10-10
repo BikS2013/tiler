@@ -158,7 +158,16 @@ final class MoveResizeMode {
 /// runs, so a slow app never blocks the main thread. Frame writes are
 /// coalesced: only the newest wanted frame is written.
 final class WindowMover {
-    struct Info { let id: CGWindowID; let frame: CGRect; let title: String }
+    struct Info {
+        let id: CGWindowID
+        let frame: CGRect
+        let title: String
+        /// A point in the title bar's drag area: just right of the zoom button,
+        /// which works even in apps with tabs in the title bar.
+        let grabPoint: CGPoint
+        /// AXStandardWindow (not a dialog, sheet or panel).
+        let standard: Bool
+    }
 
     private let pid: pid_t
     private let thread = RunLoopThread(name: "tiler.mover")
@@ -188,7 +197,15 @@ final class WindowMover {
                    AppHandle.bool(el, "AXFullScreen") != true,
                    let id = AppHandle.windowID(of: el), let frame = AppHandle.frame(of: el) {
                     element = el
-                    info = Info(id: id, frame: frame, title: AppHandle.string(el, kAXTitleAttribute) ?? "")
+                    var grab = CGPoint(x: frame.midX, y: frame.minY + 10)
+                    var zoom: AnyObject?
+                    if AXUIElementCopyAttributeValue(el, kAXZoomButtonAttribute as CFString, &zoom) == .success,
+                       let zoom, CFGetTypeID(zoom) == AXUIElementGetTypeID(),
+                       let z = AppHandle.frame(of: zoom as! AXUIElement) {
+                        grab = CGPoint(x: z.maxX + 8, y: z.midY)
+                    }
+                    info = Info(id: id, frame: frame, title: AppHandle.string(el, kAXTitleAttribute) ?? "", grabPoint: grab,
+                                standard: AppHandle.string(el, kAXSubroleAttribute) == kAXStandardWindowSubrole)
                 }
             }
             DispatchQueue.main.async { completion(info) }

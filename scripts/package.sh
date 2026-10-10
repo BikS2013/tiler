@@ -113,6 +113,8 @@ cask "tiler" do
     Show every shortcut: Ctrl+Cmd+/   Settings: menu bar icon > Settings...
     Move or resize any untiled window with the keyboard: Ctrl+Cmd+M, then arrows
     (Shift resizes, Option = fine, C centre, M fill, Return done).
+    Move the focused window to the previous / next desktop: Ctrl+Cmd+, / Ctrl+Cmd+.
+    (keep Mission Control "Move left/right a space" shortcuts turned on).
     Focus follows mouse (optional): menu bar icon > Focus Follows Mouse.
     Upgrading: Settings > General > Add Missing Settings (adds new settings only).
     Launch at login: Settings > General.

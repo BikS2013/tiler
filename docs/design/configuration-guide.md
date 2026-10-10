@@ -35,9 +35,14 @@ action only. Unknown actions or keys are errors.
 Actions: `toggleDesktop`, `focusLeft/Right/Up/Down`, `swapLeft/Right/Up/Down`,
 `resizeLeft/Right/Up/Down`, `toggleFloat`, `toggleSplit`, `mirror`, `equalize`, `retile`,
 `showHotkeys` (template `ctrl+cmd+/`, opens the shortcuts overlay), `moveResize` (template
-`ctrl+cmd+m`, starts the move/resize mode for the focused untiled window). `toggleDesktop`,
-`showHotkeys` and `moveResize` work on every desktop; the rest only while a tiled desktop has
-focus. The keys used inside the move/resize mode (arrows, ⇧, ⌥, C, M, Return, Esc) are fixed.
+`ctrl+cmd+m`, starts the move/resize mode for the focused untiled window),
+`windowToPreviousDesktop` / `windowToNextDesktop` (templates `ctrl+cmd+,` / `ctrl+cmd+.`, carry the
+focused window to the neighbouring desktop). `toggleDesktop`, `showHotkeys`, `moveResize` and the
+two desktop moves work on every desktop; the rest only while a tiled desktop has focus.
+
+The desktop moves also depend on a macOS setting outside Tiler: System Settings → Keyboard →
+Keyboard Shortcuts → Mission Control → **Move left a space** / **Move right a space** must be on
+(any key combination). Tiler reads them and says so when they are off. The keys used inside the move/resize mode (arrows, ⇧, ⌥, C, M, Return, Esc) are fixed.
 
 **Upgrading.** A config file written by an older version lacks the newer actions and is rejected
 ("missing required key 'focusFollowsMouse'"); nothing is filled in silently. Settings → General

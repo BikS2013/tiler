@@ -21,6 +21,11 @@ final class Controller {
     var onShowHotkeys: (() -> Void)?
     /// The move/resize shortcut was pressed.
     var onMoveResize: (() -> Void)?
+    /// A move-window-to-desktop shortcut was pressed (true = next desktop).
+    var onMoveToDesktop: ((Bool) -> Void)?
+    /// The window being carried to another desktop: its synthetic drag is not
+    /// a user drag, and reconcile waits until it has landed.
+    private var movingWindow: CGWindowID?
     /// True while a transient UI (shortcuts overlay, move/resize mode) is up;
     /// focus does not follow the mouse then.
     var transientUIActive: (() -> Bool)?
@@ -59,7 +64,7 @@ final class Controller {
     /// so Settings and `tiler-ctl.sh` work from the first launch.
     func prepare() {
         reloadConfig()
-        // Scripting hook: `scripts/tiler-ctl.sh toggle <display-uuid|active>`, `retile`, `reload`, `settings`, `shortcuts`, `moveresize`, `dump`.
+        // Scripting hook: `scripts/tiler-ctl.sh toggle <display-uuid|active>`, `retile`, `reload`, `settings`, `shortcuts`, `moveresize`, `nextdesktop`, `previousdesktop`, `dump`.
         DistributedNotificationCenter.default().addObserver(forName: Notification.Name("com.giorgosmarinos.tiler.command"),
                                                             object: nil, queue: .main) { [weak self] n in
             self?.command(n.object as? String ?? "")
@@ -128,6 +133,10 @@ final class Controller {
             onShowHotkeys?()
         case "moveresize":
             onMoveResize?()
+        case "nextdesktop":
+            onMoveToDesktop?(true)
+        case "previousdesktop":
+            onMoveToDesktop?(false)
         case "dump":
             for d in desktops.values {
                 let visible = Spaces.current(onDisplay: d.key.displayUUID) == d.spaceID
@@ -192,6 +201,38 @@ final class Controller {
     }
 
     // MARK: Desktops
+
+    /// The desktop mover is about to drag this window to another desktop.
+    func beginDesktopMove(of id: CGWindowID) { movingWindow = id }
+
+    /// The drag is over. `target` is the Space the window landed on, or nil if
+    /// it did not move. The window leaves its old desktop's layout (that desktop
+    /// lays out again when it is next on screen); a floating window stays
+    /// floating, with its frame, if the new desktop is tiled too.
+    func endDesktopMove(of id: CGWindowID, pid: pid_t, display: String, to target: SpaceID?) {
+        movingWindow = nil
+        if let target {
+            var floatFrame: CGRect?
+            var wasFloating = false
+            for d in desktops.values where d.owns(id) || d.floatingFrames[id] != nil {
+                if d.floating.removeValue(forKey: id) != nil { wasFloating = true; floatFrame = d.floatingFrames[id] }
+                d.floatingFrames[id] = nil
+                d.framesToRestore.remove(id)
+                if d.tree.contains(id) {
+                    d.tree.remove(id)
+                    d.applied[id] = nil
+                    d.needsLayout = true
+                }
+            }
+            if wasFloating, let t = desktops.values.first(where: { $0.key.displayUUID == display && $0.spaceID == target }) {
+                t.floating[id] = pid
+                t.floatingFrames[id] = floatFrame
+            }
+            saveDesktops()
+        }
+        scheduleReconcile()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in self?.scheduleReconcile() }
+    }
 
     /// True when a tiled desktop holds the window in its layout.
     func isTiled(_ id: CGWindowID) -> Bool { desktops.values.contains { $0.tree.contains(id) } }
@@ -353,6 +394,7 @@ final class Controller {
         case .windowMinimized:
             scheduleReconcile()
         case .windowMoved(_, let id), .windowResized(_, let id):
+            if id == movingWindow { return }
             if let d = desktops.values.first(where: { $0.floating[id] != nil }) { captureFloatingFrame(id, on: d) }
             let tiled = desktops.values.first { $0.tree.contains(id) }
             if NSEvent.pressedMouseButtons & 1 != 0 {
@@ -401,6 +443,11 @@ final class Controller {
     /// are actually on it.
     private func reconcile() {
         guard config != nil, !desktops.isEmpty else { return }
+        // A window is in transit to another desktop: wait for it to land.
+        if movingWindow != nil {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in self?.scheduleReconcile() }
+            return
+        }
         let screens = Dictionary(Screen.all().map { ($0.uuid, $0) }, uniquingKeysWith: { a, _ in a })
         let visible = desktops.values.filter {
             screens[$0.key.displayUUID] != nil && Spaces.current(onDisplay: $0.key.displayUUID) == $0.spaceID
@@ -698,6 +745,9 @@ final class Controller {
         case .moveResize:
             onMoveResize?()
             return
+        case .windowToPreviousDesktop, .windowToNextDesktop:
+            onMoveToDesktop?(action == .windowToNextDesktop)
+            return
         default:
             break
         }
@@ -754,7 +804,7 @@ final class Controller {
             rechecked.removeAll()
             layout(d)
             reconcile()
-        case .toggleDesktop, .showHotkeys, .moveResize:
+        case .toggleDesktop, .showHotkeys, .moveResize, .windowToPreviousDesktop, .windowToNextDesktop:
             break
         }
     }

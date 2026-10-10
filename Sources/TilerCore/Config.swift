@@ -13,10 +13,16 @@ public enum Action: String, CaseIterable, Codable {
     case retile
     case showHotkeys
     case moveResize
+    case windowToPreviousDesktop, windowToNextDesktop
 
     /// `toggleDesktop`, `showHotkeys` and `moveResize` stay registered on desktops
     /// Tiler does not tile; every other hotkey is released there so apps keep the key.
-    public var worksOnUntiledDesktop: Bool { self == .toggleDesktop || self == .showHotkeys || self == .moveResize }
+    public var worksOnUntiledDesktop: Bool {
+        switch self {
+        case .toggleDesktop, .showHotkeys, .moveResize, .windowToPreviousDesktop, .windowToNextDesktop: return true
+        default: return false
+        }
+    }
 
     /// What the action does, as shown in the shortcuts overlay and Settings.
     public var title: String {
@@ -24,6 +30,8 @@ public enum Action: String, CaseIterable, Codable {
         case .toggleDesktop: return "Tile or untile this desktop"
         case .showHotkeys: return "Show keyboard shortcuts"
         case .moveResize: return "Move or resize an untiled window"
+        case .windowToPreviousDesktop: return "Move window to previous desktop"
+        case .windowToNextDesktop: return "Move window to next desktop"
         case .focusLeft: return "Focus left"
         case .focusRight: return "Focus right"
         case .focusUp: return "Focus up"
@@ -45,12 +53,13 @@ public enum Action: String, CaseIterable, Codable {
     }
 
     public enum Group: String, CaseIterable {
-        case general = "General", focus = "Focus", swap = "Swap", resize = "Resize", layout = "Layout"
+        case general = "General", desktops = "Desktops", focus = "Focus", swap = "Swap", resize = "Resize", layout = "Layout"
     }
 
     public var group: Group {
         switch self {
         case .toggleDesktop, .showHotkeys, .moveResize: return .general
+        case .windowToPreviousDesktop, .windowToNextDesktop: return .desktops
         case .focusLeft, .focusRight, .focusUp, .focusDown: return .focus
         case .swapLeft, .swapRight, .swapUp, .swapDown: return .swap
         case .resizeLeft, .resizeRight, .resizeUp, .resizeDown: return .resize
@@ -362,7 +371,9 @@ public struct Config: Equatable {
         "equalize": "ctrl+cmd+e",
         "retile": "ctrl+cmd+r",
         "showHotkeys": "ctrl+cmd+/",
-        "moveResize": "ctrl+cmd+m"
+        "moveResize": "ctrl+cmd+m",
+        "windowToPreviousDesktop": "ctrl+cmd+,",
+        "windowToNextDesktop": "ctrl+cmd+."
       }
     }
 

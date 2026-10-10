@@ -5,6 +5,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var menu: StatusMenu?
     private var overlay: ShortcutsOverlay?
     private var moveResize: MoveResizeMode?
+    private var desktopMover: DesktopMover?
     private var settings: SettingsWindowController?
     private var permissionTimer: Timer?
 
@@ -19,6 +20,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.onShowShortcuts = { moveResize.end(); overlay.toggle() }
         menu.onMoveResize = { overlay.close(); moveResize.toggle() }
         controller.onMoveResize = { overlay.close(); moveResize.toggle() }
+        let desktopMover = DesktopMover(controller: controller)
+        self.desktopMover = desktopMover
+        controller.onMoveToDesktop = { forward in overlay.close(); moveResize.end(); desktopMover.move(forward: forward) }
         menu.onShowSettings = { [weak self] pane in self?.showSettings(pane) }
         controller.onShowHotkeys = { moveResize.end(); overlay.toggle() }
         controller.onShowSettings = { [weak self] in self?.showSettings(nil) }

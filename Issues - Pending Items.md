@@ -26,7 +26,17 @@
 9. **Move/resize mode keeps a window on its display.** Moving a window to another display with
    the keyboard is not supported (frames are clamped to the window's display).
 
+10. **Moving a window to another desktop depends on a title-bar drag.** An app whose title bar
+    has no draggable area right of the zoom button (custom-drawn chrome) may not move; Tiler then
+    says "The window did not move". It also needs the Mission Control "Move left/right a space"
+    shortcuts on. Your Hammerspoon Hyper+←/→ does the same thing; either can stay.
+
 ## Completed
+
+- **2026-10-10 — Move the focused window to the previous/next desktop (0.6.0).** `DesktopMover`,
+  `⌃⌘,` / `⌃⌘.`. Checked live on the main display: untiled Desktop 3 → 4 → 3 → 2 → tiled
+  Desktop 1 (window tiled on arrival) → refused toward the full-screen Space → out to Desktop 2
+  (left Desktop 1's layout) → back to Desktop 3.
 
 - **2026-10-10 — Floating windows now keep their size and position (0.5.0).** Frames are captured
   0.3 s after a floating window moves or resizes, saved (coalesced 1 s), restored once after a
@@ -78,6 +88,12 @@
   carry `needsLayout`, set on display changes and config reloads.
 
 ## Release log
+
+- **2026-10-10 — v0.6.0 (build 15).** Move the focused window to the previous/next desktop. 30
+  tests passed; app and disk image `status: Accepted`, `source=Notarized Developer ID`. Zip
+  SHA-256 `9abd1adbf3caf464cde5a701cd0bc26e6ea97c63549987514e79cf612eb530cb`, DMG
+  `105ac65a8abfc4af9779647f89b07b54b1d868863ae521108290b0a56b8cde5b`. Config gains two
+  shortcuts (Add Missing Settings).
 
 - **2026-10-10 — v0.5.0 (build 11).** Floating windows keep size and position. 29 tests passed;
   app and disk image `status: Accepted`, `source=Notarized Developer ID`. Zip SHA-256

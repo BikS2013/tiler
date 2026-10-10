@@ -53,7 +53,7 @@ private struct ShortcutsView: View {
     let config: Config
     let tiled: Bool
 
-    private var columns: [[Action.Group]] { [[.general, .focus, .swap], [.resize, .layout]] }
+    private var columns: [[Action.Group]] { [[.general, .focus, .swap], [.desktops, .resize, .layout]] }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -83,7 +83,7 @@ private struct ShortcutsView: View {
     private var status: String {
         if tiled { return "This desktop is tiled." }
         let key = config.hotkeys[.toggleDesktop].map { " Press \($0.symbols) to tile it." } ?? ""
-        return "This desktop is not tiled; only the General shortcuts work here.\(key)"
+        return "This desktop is not tiled; only the General and Desktops shortcuts work here.\(key)"
     }
 
     private func section(_ group: Action.Group) -> some View {

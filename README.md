@@ -41,6 +41,20 @@ float, and Launch at Login.
 | `⌃⌘R` | Retile: re-read the desktop and rewrite every tile |
 | `⌃⌘/` | Show the keyboard shortcuts overlay (works everywhere) |
 | `⌃⌘M` | Move or resize the focused untiled window with the keyboard (works everywhere, see below) |
+| `⌃⌘,` / `⌃⌘.` | Move the focused window to the previous / next desktop and follow it (works everywhere, see below) |
+
+### Sending a window to another desktop
+
+`⌃⌘,` and `⌃⌘.` carry the focused window to the previous or next desktop on its display, and you
+go with it. This works from any desktop, tiled or not. On a tiled desktop the window joins the
+layout; leaving one, it drops out of that layout; a floating window stays floating with its size
+and position.
+
+macOS no longer lets apps move windows between desktops directly, so Tiler does what you would
+do by hand: it holds the window by its title bar and presses your Mission Control shortcut
+**Move left/right a space**. Keep those two shortcuts turned on in System Settings → Keyboard →
+Keyboard Shortcuts → Mission Control (they are on by default; a customised key is fine). Tiler
+says so if there is no desktop on that side, or if it is a full-screen app's space.
 
 ### Focus follows mouse
 

@@ -213,6 +213,15 @@ final class ConfigTests: XCTestCase {
         XCTAssertNil(KeyCombo(keyCode: 0xFF, carbonModifiers: KeyCombo.cmdKey))
     }
 
+    func testDesktopMovesWorkEverywhereWithDefaults() throws {
+        let c = Config.defaults
+        XCTAssertEqual(c.hotkeys[.windowToPreviousDesktop], try KeyCombo.parse("ctrl+cmd+,"))
+        XCTAssertEqual(c.hotkeys[.windowToNextDesktop]?.symbols, "⌃⌘.")
+        XCTAssertTrue(Action.windowToNextDesktop.worksOnUntiledDesktop)
+        XCTAssertFalse(Action.focusLeft.worksOnUntiledDesktop)
+        XCTAssertEqual(Action.windowToPreviousDesktop.group, .desktops)
+    }
+
     func testConflicts() {
         let c = Config.defaults
         XCTAssertEqual(c.conflicts(c.hotkeys[.retile]!, for: .equalize), [.retile])

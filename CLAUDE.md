@@ -56,9 +56,11 @@ desktops (display + Space) the user turns on. Design: `docs/design/project-desig
 
 ## Hard rules
 
-- Never touch windows outside a tiled desktop's display **and** Space. Sole exception: the
-  move/resize mode (`MoveResizeMode`), which acts only on the focused, untiled window the user
-  explicitly asked for, only while the mode is on.
+- Never touch windows outside a tiled desktop's display **and** Space. Exceptions, both explicit
+  requests on the focused window only: the move/resize mode (`MoveResizeMode`) and moving a
+  window to the previous/next desktop (`DesktopMover`).
+- Never call Space-mutation APIs. Moving a window to another desktop drives the user's own
+  Mission Control shortcut with a synthetic title-bar drag (see `DesktopMover`).
 - No polling and no active `CGEventTap`. React to AX/NSWorkspace events; hotkeys via Carbon. The
   only tap is focus-follows-mouse's listen-only mouse-moved tap, present only while that setting
   is on and a desktop is tiled, and switched off while the pointer is being tracked (a bounded

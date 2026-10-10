@@ -6,8 +6,9 @@ individual macOS desktops: one (display, Space) pair at a time, chosen by the us
 ## Goals
 
 - Same core job as HyprMac (Hyprland-style tiling), restricted to the desktops the user turns on.
-- Never read, move or resize a window on another display or another desktop. The one exception
-  is explicit: the move/resize mode acts on the focused window the user asked it to.
+- Never read, move or resize a window on another display or another desktop. The exceptions are
+  explicit user requests on the focused window: the move/resize mode, and moving a window to the
+  previous/next desktop.
 - Fast and light: no polling, no keyboard event tap, no work at all while nothing is tiled.
 - Few moving parts, so few bugs.
 
@@ -115,7 +116,30 @@ with `Hotkeys.borrow` and give them back with `release()`.
   standard About panel, and a hidden main menu so ⌘W/⌘Q/⌘,/editing keys work in Settings.
 - Minimum macOS is 14 (section-header menu items, `NSApp.activate()`, SwiftUI `onChange` two-value form).
 
-### Focus follows mouse
+### Moving a window to another desktop
+
+`DesktopMover` (`⌃⌘,` / `⌃⌘.`, every desktop). The private Space-move calls are blocked on macOS
+14.5+ and Tiler never mutates Spaces itself; instead it drives the system's own shortcut, the way
+the user would:
+
+1. Read the focused window on a short-lived `WindowMover` thread: id, frame, a grab point just
+   right of the zoom button (`kAXZoomButton`, else the top-centre of the frame) and whether it is
+   an `AXStandardWindow`.
+2. Find the window's display, its Spaces in Mission Control order (`CGSCopyManagedDisplaySpaces`)
+   and the neighbour. Refuse (HUD note) if there is none, if it is a full-screen Space, or if the
+   window is not standard.
+3. Read the user's "Move left/right a space" shortcut from `com.apple.symbolichotkeys` (ids 79 and
+   81: key code and modifier flags; default ⌃+fn+arrow when never customised). Refuse if disabled.
+4. `Controller.beginDesktopMove`: moved/resized notifications for that window are ignored (not a
+   user drag) and reconcile waits.
+5. Synthetic HID events, mouse events with no modifier flags (the shortcut's keys are still held):
+   mouse-down on the grab point, +50 ms drag by 1 px, +100 ms the Mission Control shortcut, +500 ms
+   mouse-up, pointer warped back.
+6. +150 ms: success if the display's current Space is the target. `endDesktopMove` removes the
+   window from every desktop's tree (that desktop re-lays out when next visible) and floating set;
+   if it floated and the target desktop is tiled, it floats there with the same frame. Reconcile
+   then tiles it on a tiled target. The window is refocused.
+
 
 Optional (`focusFollowsMouse`, off in the template; delay `focusDelay`). Designed so it costs
 nothing at rest and almost nothing in motion:
@@ -212,6 +236,7 @@ All are read-only or focus-related; Tiler never moves windows between Spaces (br
 | `Sources/Tiler/ShortcutsOverlay.swift` | Keyboard shortcuts HUD |
 | `Sources/Tiler/MoveResizeMode.swift` | Move/resize mode, `WindowMover` thread, its HUD |
 | `Sources/Tiler/HUDPanel.swift` | Shared non-activating HUD panel |
+| `Sources/Tiler/DesktopMover.swift` | Move the focused window to the previous/next desktop |
 | `Sources/TilerCore/WindowNudge.swift` | Move/resize arithmetic (pure, tested) |
 | `Sources/Tiler/Settings.swift` | Settings window, model and panes (incl. shortcut recorder) |
 | `Sources/Tiler/Appearance.swift` | Menu bar glyph, key caps view, menu key equivalents |
