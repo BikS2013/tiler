@@ -20,6 +20,13 @@ final class Desktop {
     /// survives a Tiler restart; the pid lets a restore reject a window id the
     /// window server has since given to another app.
     var floating: [CGWindowID: pid_t] = [:]
+    /// Where each floating window was last seen (size and position, AX
+    /// coordinates). Kept after a window is tiled again, so floating it a
+    /// second time puts it back where it was; saved for floating windows.
+    var floatingFrames: [CGWindowID: CGRect] = [:]
+    /// Floating windows restored from `desktops.json` whose saved frame is
+    /// still to be put back (done once, when the desktop is next on screen).
+    var framesToRestore: Set<CGWindowID> = []
     /// Last frame written per window, so unchanged tiles are not rewritten.
     var applied: [CGWindowID: CGRect] = [:]
     /// Frames from the last layout pass.
@@ -39,7 +46,12 @@ final class Desktop {
 
 /// One desktop in `desktops.json`.
 struct SavedDesktop: Codable {
-    struct Window: Codable { let id: CGWindowID; let pid: pid_t }
+    struct Window: Codable {
+        let id: CGWindowID
+        let pid: pid_t
+        /// Absent in files written before 0.5.
+        let frame: CGRect?
+    }
     let displayUUID: String
     let spaceUUID: String
     let floating: [Window]

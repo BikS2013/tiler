@@ -108,12 +108,12 @@ table.t td:first-child{font-weight:600;color:var(--ink)}
     <rect x="100" y="0" width="88" height="88" rx="10" fill="#F6F3EC" opacity=".82"/>
     <rect x="100" y="100" width="88" height="88" rx="10" fill="#F6F3EC" opacity=".82"/>
   </svg>
-  <div class="eyebrow" style="top:140px">Engineering deep-dive · Tiler v0.4.0</div>
+  <div class="eyebrow" style="top:140px">Engineering deep-dive · Tiler v0.5.0</div>
   <div style="position:absolute;top:250px;left:90px;right:480px;font-size:124px;line-height:.96;font-weight:300;letter-spacing:-2px;color:var(--paper)">
     Tiler<br><span style="color:var(--copper-l);font-style:italic;font-weight:400">one desktop at a time.</span>
   </div>
   <div style="position:absolute;top:560px;left:90px;width:1050px;font-size:30px;line-height:1.4;color:rgba(246,243,236,.8)">
-    How a 3,600-line Swift menu bar app tiles macOS windows with Accessibility, SkyLight and Carbon — and touches nothing it was not asked to.
+    How a 3,700-line Swift menu bar app tiles macOS windows with Accessibility, SkyLight and Carbon — and touches nothing it was not asked to.
   </div>
   <div style="position:absolute;left:90px;right:90px;bottom:80px;display:flex;align-items:flex-end;justify-content:space-between">
     <span class="lg lg-knockout lg-hero" role="img" aria-label="BikS2013"></span>
@@ -192,7 +192,7 @@ table.t td:first-child{font-weight:600;color:var(--ink)}
     <div class="card">
       <div class="num">02</div>
       <h3 style="margin-top:22px">Engineers</h3>
-      <p>People who want to read, audit or extend a window manager. 3,600 lines, no dependencies, one design document, 29 unit tests.</p>
+      <p>People who want to read, audit or extend a window manager. 3,700 lines, no dependencies, one design document, 29 unit tests.</p>
     </div>
     <div class="card">
       <div class="num">03</div>
@@ -228,7 +228,7 @@ table.t td:first-child{font-weight:600;color:var(--ink)}
   <div class="rule"></div>
   <div class="body" style="display:grid;grid-template-columns:1.25fr 1fr;gap:90px;align-items:start">
     <div>
-      <div style="font-size:240px;font-weight:200;letter-spacing:-10px;line-height:.9"><span class="cop">3,600</span></div>
+      <div style="font-size:240px;font-weight:200;letter-spacing:-10px;line-height:.9"><span class="cop">3,700</span></div>
       <div style="margin-top:30px;font-size:28px;line-height:1.35;max-width:760px">lines of Swift, Settings, the shortcuts overlay and the move/resize mode included — against about <b>35,000</b> in HyprMac.</div>
     </div>
     <div style="padding-top:20px">
@@ -398,7 +398,7 @@ table.t td:first-child{font-weight:600;color:var(--ink)}
             connection, "Main" <span class="k">as</span> CFString)
 }</pre>
       <p class="small" style="margin-top:22px">A desktop is <b>visible</b> when its display's current Space equals its stored Space id. Ids are re-resolved from the uuid at launch and on display changes; a desktop deleted in Mission Control is forgotten.</p>
-      <p class="small" style="margin-top:14px"><code>desktops.json</code> also keeps each desktop's floating windows as window id + owner pid. A restore keeps an id only if it still exists and belongs to that pid (ids restart after a logout or reboot); closing the window or quitting the app drops it.</p>
+      <p class="small" style="margin-top:14px"><code>desktops.json</code> keeps floating windows as id + owner pid + frame (read 0.3 s after a move, saved ≤ 1/s). A restore keeps an id only if that pid still owns it, then puts the frame back once the desktop is on screen. Re-floating reuses the last frame if ≥ 50 % is on the display.</p>
     </div>
   </div>
   <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">10</span></div>
@@ -1044,7 +1044,7 @@ scripts/tiler-ctl.sh retile | moveresize | dump</pre>
   <div style="position:absolute;left:90px;right:90px;bottom:80px;display:flex;align-items:flex-end;justify-content:space-between">
     <span class="lg lg-knockout lg-hero" role="img" aria-label="BikS2013"></span>
     <div style="font-size:18px;letter-spacing:.4px;color:rgba(246,243,236,.7);text-align:right;line-height:1.55">
-      <div>BikS2013 · Tiler v0.4.0 · MIT license</div>
+      <div>BikS2013 · Tiler v0.5.0 · MIT license</div>
       <div class="mono">brew install --cask tiler</div>
     </div>
   </div>

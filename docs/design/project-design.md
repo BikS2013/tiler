@@ -137,11 +137,22 @@ continuous motion (~0.15 % of a core). An `NSEvent` global monitor (one wake-up 
 about 0.13 s for the same motion, so the tap-then-track design is about 9× cheaper. Skipped while
 the shortcuts overlay or the move/resize mode is up, during drags and with a mouse button down.
 
-### Floating windows persist
+### Floating windows persist (membership, size and position)
 
-`Desktop.floating` maps each floating window id to its owner pid. `desktops.json` stores, per
-desktop, `displayUUID`, `spaceUUID` and `floating: [{id, pid}]` (the 0.2/0.3 list of keys is still
-read). On restore a window stays floating only if that id exists now and belongs to the same pid,
+`Desktop.floating` maps each floating window id to its owner pid; `Desktop.floatingFrames` holds
+the last frame seen for each. `desktops.json` stores, per desktop, `displayUUID`, `spaceUUID` and
+`floating: [{id, pid, frame}]` (the 0.2/0.3 list of keys and 0.4 records without `frame` still
+load).
+
+- **Capture.** A moved/resized notification for a floating window (a drag, the move/resize mode,
+  the app itself) schedules one frame read 0.3 s after the last change; a changed frame is saved
+  with writes coalesced to one per second. `centerFloating` records the frame it writes.
+- **Restore after a restart.** Restored windows go into `framesToRestore`; the next reconcile that
+  sees one on screen resolves it on its app's handle (so later moves are observed) and writes the
+  saved frame once, if at least half of it lies on the desktop's display (`frameFits`).
+- **Float again.** Floating a window that floated before puts it back at its last frame (same
+  `frameFits` check), otherwise it is centred. Frames are kept in memory after a window is tiled
+  again and dropped when it closes or its app quits. On restore a window stays floating only if that id exists now and belongs to the same pid,
 because window ids restart after a logout or reboot. Entries drop when the window is destroyed or
 its app quits. Reconcile no longer prunes floating windows that are merely hidden, minimised or on
 another Space.

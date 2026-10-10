@@ -28,6 +28,12 @@
 
 ## Completed
 
+- **2026-10-10 — Floating windows now keep their size and position (0.5.0).** Frames are captured
+  0.3 s after a floating window moves or resizes, saved (coalesced 1 s), restored once after a
+  restart, and reused when a window is floated again. Checked live: frame saved after the
+  move/resize mode; a window moved while Tiler was off returned to its saved frame on restart;
+  tile → float again returned to the saved frame; closing removed the entry.
+
 - **2026-10-10 — Floating windows were tiled again after a Tiler restart (0.4.0).** Floating is
   now saved per desktop with the window's owner pid and validated on restore; closed windows and
   quit apps drop out. Checked live: a floated TextEdit window stayed floating across a restart;
@@ -72,6 +78,11 @@
   carry `needsLayout`, set on display changes and config reloads.
 
 ## Release log
+
+- **2026-10-10 — v0.5.0 (build 11).** Floating windows keep size and position. 29 tests passed;
+  app and disk image `status: Accepted`, `source=Notarized Developer ID`. Zip SHA-256
+  `2b3c91eda14a30b138e9b6e794ab97f0b24bfe1768157e79b85d6774ea3a01e7`, DMG
+  `0271dd8f694c01b46f10cbbf5cb1629f47faa524e47f3fa1f899d52df662e609`. No config changes.
 
 - **2026-10-10 — v0.4.0 (build 9).** Floating windows persist; focus follows mouse; Add Missing
   Settings. `scripts/package.sh`: 29 tests passed; app and disk image `status: Accepted`,

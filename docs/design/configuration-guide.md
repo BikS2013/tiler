@@ -54,7 +54,7 @@ that side if there is one, otherwise the opposite one).
 
 | File | Content |
 |---|---|
-| `desktops.json` (same folder) | Tiled desktops (display UUID + Space uuid) and, per desktop, the floating windows (window id + owner pid). Written by Tiler; safe to delete to forget all. |
+| `desktops.json` (same folder) | Tiled desktops (display UUID + Space uuid) and, per desktop, the floating windows (window id, owner pid, last size and position). Written by Tiler; safe to delete to forget all. |
 
 ## Build-time setting
 

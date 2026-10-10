@@ -108,7 +108,7 @@
     <rect x="288" y="288" width="128" height="272" rx="22" fill="none" stroke="#F6F3EC" stroke-opacity="0.55" stroke-width="3"/>
     <rect x="432" y="288" width="128" height="272" rx="22" fill="none" stroke="#F6F3EC" stroke-opacity="0.55" stroke-width="3" stroke-dasharray="10 8"/>
   </svg>
-  <div style="position:absolute;top:150px;left:90px;font:600 16px var(--mono);letter-spacing:3px;text-transform:uppercase;color:var(--copper-l)">A menu bar app for macOS · v0.4</div>
+  <div style="position:absolute;top:150px;left:90px;font:600 16px var(--mono);letter-spacing:3px;text-transform:uppercase;color:var(--copper-l)">A menu bar app for macOS · v0.5</div>
   <div style="position:absolute;top:250px;left:90px;width:1050px;font-size:150px;font-weight:300;line-height:0.95;letter-spacing:-4px;color:var(--paper)">Tiler</div>
   <div style="position:absolute;top:420px;left:90px;width:1130px;font-size:64px;font-weight:300;line-height:1.08;letter-spacing:-1.2px;color:var(--paper)">Tiling windows, <span style="color:var(--copper-l);font-style:italic;font-weight:400">one desktop at a time.</span></div>
   <div style="position:absolute;top:620px;left:90px;width:900px;font-size:28px;line-height:1.4;color:rgba(246,243,236,0.78)">Turn it on where you want order. Every other desktop and display stays exactly as you left it.</div>
@@ -186,7 +186,7 @@
     <div class="row"><span>Virtual workspaces</span><b>none: native Spaces</b></div>
     <div class="row"><span>Permissions</span><b>Accessibility only</b></div>
     <div class="row"><span>Cost of one update</span><b class="mono" style="font-weight:500">≈ 1 ms</b></div>
-    <div class="row"><span>Size of the code</span><b class="mono" style="font-weight:500">~3,300 lines</b></div>
+    <div class="row"><span>Size of the code</span><b class="mono" style="font-weight:500">~3,700 lines</b></div>
   </div>
   <div style="position:absolute;left:90px;bottom:110px;font-size:16px;color:rgba(27,29,33,0.5)">Measured on macOS 27 with two tiled desktops. Inspired by HyprMac (~35,000 lines), minus its workspaces, keyboard tap and polling.</div>
   <div class="footer"><div class="left"><img class="logo-foot" src="{{LOGO_SMALL}}" alt="BikS2013"><span>Tiler · user guide</span></div><span class="num">04</span></div>
@@ -213,7 +213,7 @@
     <div class="c" style="margin-top:18px;font-size:22px"># update later: brew upgrade --cask tiler</div>
   </div>
   <div class="body" style="position:absolute;top:640px;left:90px;width:820px;font-size:20px">
-    No Homebrew? Download <code>Tiler-0.4.0.zip</code> or the <code>.dmg</code> from <b>github.com/BikS2013/tiler/releases</b> and drag Tiler to Applications.
+    No Homebrew? Download <code>Tiler-0.5.0.zip</code> or the <code>.dmg</code> from <b>github.com/BikS2013/tiler/releases</b> and drag Tiler to Applications.
   </div>
   <div style="position:absolute;top:340px;left:1010px;right:90px">
     <div class="row"><span>Signed</span><b>Developer ID, notarized by Apple</b></div>
@@ -348,7 +348,7 @@
       <p>Move a window onto a tiled desktop and it joins the layout. Drag it to another display and Tiler lets it go.</p></div>
   </div>
   <div style="position:absolute;top:640px;left:90px;right:90px;border-top:2px dashed var(--grey1);padding-top:30px;display:flex;gap:60px;font-size:21px;line-height:1.5;color:rgba(27,29,33,0.82)">
-    <div style="flex:1"><b>Float one window:</b> <span class="k">⌃</span><span class="k">⌘</span><span class="k">T</span> takes it out of the layout and centres it at 60 % of the screen. Press again to tile it. It stays floating when Tiler restarts.</div>
+    <div style="flex:1"><b>Float one window:</b> <span class="k">⌃</span><span class="k">⌘</span><span class="k">T</span> takes it out of the layout and centres it at 60 % of the screen. Press again to tile it. It keeps its size and position: across Tiler restarts, and when you float it again.</div>
     <div style="flex:1"><b>Floats on its own:</b> dialogs, panels, non-resizable windows, and apps on the Always Float list (System Settings, Activity Monitor, Calculator by default).</div>
   </div>
   <div class="footer"><div class="left"><img class="logo-foot" src="{{LOGO_SMALL}}" alt="BikS2013"><span>Tiler · user guide</span></div><span class="num">12</span></div>
@@ -457,7 +457,7 @@
   </div>
   <div style="position:absolute;left:90px;right:90px;bottom:80px;display:flex;align-items:flex-end;justify-content:space-between">
     <img class="logo-hero" src="{{LOGO_KNOCKOUT}}" alt="BikS2013">
-    <div style="font-size:16px;letter-spacing:0.4px;color:rgba(246,243,236,0.7);text-align:right;line-height:1.5"><div>Tiler 0.4 · macOS 14+</div><div>Open source, MIT license · Swift, no dependencies</div></div>
+    <div style="font-size:16px;letter-spacing:0.4px;color:rgba(246,243,236,0.7);text-align:right;line-height:1.5"><div>Tiler 0.5 · macOS 14+</div><div>Open source, MIT license · Swift, no dependencies</div></div>
   </div>
 </section>
 

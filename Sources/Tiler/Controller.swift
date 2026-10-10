@@ -230,7 +230,8 @@ final class Controller {
     private func saveDesktops() {
         let saved = desktops.values.map { d in
             SavedDesktop(displayUUID: d.key.displayUUID, spaceUUID: d.key.spaceUUID,
-                         floating: d.floating.map { SavedDesktop.Window(id: $0.key, pid: $0.value) }.sorted { $0.id < $1.id })
+                         floating: d.floating.map { SavedDesktop.Window(id: $0.key, pid: $0.value, frame: d.floatingFrames[$0.key]) }
+                            .sorted { $0.id < $1.id })
         }.sorted { ($0.displayUUID, $0.spaceUUID) < ($1.displayUUID, $1.spaceUUID) }
         do {
             try FileManager.default.createDirectory(at: Self.supportDir, withIntermediateDirectories: true)
@@ -268,7 +269,12 @@ final class Controller {
             guard let id = spaces[key.spaceUUID] else { dropped = true; continue }
             let d = Desktop(key: key, spaceID: id)
             for w in entry.floating {
-                if owners[w.id] == w.pid { d.floating[w.id] = w.pid } else { dropped = true }
+                guard owners[w.id] == w.pid else { dropped = true; continue }
+                d.floating[w.id] = w.pid
+                if let frame = w.frame {
+                    d.floatingFrames[w.id] = frame
+                    d.framesToRestore.insert(w.id)
+                }
             }
             desktops[key] = d
         }
@@ -281,6 +287,7 @@ final class Controller {
         for d in desktops.values {
             let before = d.floating.count
             d.floating = d.floating.filter { $0.value != pid }
+            d.floatingFrames = d.floatingFrames.filter { d.floating[$0.key] != nil || d.tree.contains($0.key) }
             changed = changed || d.floating.count != before
         }
         if changed { saveDesktops() }
@@ -337,6 +344,8 @@ final class Controller {
             rechecked.remove(id)
             for d in desktops.values where d.owns(id) {
                 d.tree.remove(id)
+                d.floatingFrames[id] = nil
+                d.framesToRestore.remove(id)
                 if d.floating.removeValue(forKey: id) != nil { saveDesktops() }
                 d.applied[id] = nil
                 layout(d)
@@ -344,6 +353,7 @@ final class Controller {
         case .windowMinimized:
             scheduleReconcile()
         case .windowMoved(_, let id), .windowResized(_, let id):
+            if let d = desktops.values.first(where: { $0.floating[id] != nil }) { captureFloatingFrame(id, on: d) }
             let tiled = desktops.values.first { $0.tree.contains(id) }
             if NSEvent.pressedMouseButtons & 1 != 0 {
                 // A user drag: act once the button is released.
@@ -441,6 +451,7 @@ final class Controller {
             // Floating windows are not pruned here: a hidden, minimised or moved
             // window keeps floating. Closed windows and quit apps drop out
             // through the destroyed / terminate events.
+            restoreFloatingFrames(on: d, present: presentIDs)
 
             // Back to front, so the frontmost new window is inserted last.
             for w in present.reversed() where !d.owns(w.id) && !isFloatingApp(w.pid) {
@@ -712,7 +723,14 @@ final class Controller {
                 d.applied[fid] = nil
                 d.floating[fid] = facts[fid]?.pid ?? focused?.pid
                 layout(d)
-                centerFloating(fid, on: d)
+                // Back where it last floated, if that is still on this display;
+                // otherwise centred.
+                if let frame = d.floatingFrames[fid], frameFits(frame, on: d),
+                   let pid = d.floating[fid], let handle = apps[pid] {
+                    handle.setFrame(fid, frame)
+                } else {
+                    centerFloating(fid, on: d)
+                }
                 saveDesktops()
             } else if d.floating.removeValue(forKey: fid) != nil {
                 d.tree.insert(fid, splitting: d.lastFocused.flatMap { d.tree.contains($0) ? $0 : nil })
@@ -761,8 +779,72 @@ final class Controller {
         guard let pid = facts[id]?.pid, let screen = Screen.all().first(where: { $0.uuid == d.key.displayUUID }) else { return }
         let u = screen.usable
         let size = CGSize(width: (u.width * 0.6).rounded(), height: (u.height * 0.6).rounded())
-        apps[pid]?.setFrame(id, CGRect(x: (u.midX - size.width / 2).rounded(), y: (u.midY - size.height / 2).rounded(),
-                                       width: size.width, height: size.height))
+        let frame = CGRect(x: (u.midX - size.width / 2).rounded(), y: (u.midY - size.height / 2).rounded(),
+                           width: size.width, height: size.height)
+        apps[pid]?.setFrame(id, frame)
+        d.floatingFrames[id] = frame
+    }
+
+    /// True when most of the frame lies on the desktop's display (a display
+    /// may have been unplugged or rearranged since the frame was saved).
+    private func frameFits(_ frame: CGRect, on d: Desktop) -> Bool {
+        guard let screen = Screen.all().first(where: { $0.uuid == d.key.displayUUID }) else { return false }
+        let visible = frame.intersection(screen.bounds)
+        return !visible.isNull && visible.width * visible.height >= 0.5 * frame.width * frame.height
+    }
+
+    // MARK: Floating frames
+
+    private var captureWork: [CGWindowID: DispatchWorkItem] = [:]
+    private var saveWork: DispatchWorkItem?
+
+    /// A floating window moved or changed size (a drag, the move/resize mode,
+    /// the app itself): read its frame once things settle, then save.
+    private func captureFloatingFrame(_ id: CGWindowID, on d: Desktop) {
+        captureWork[id]?.cancel()
+        let work = DispatchWorkItem { [weak self, weak d] in
+            guard let self, let d, let pid = d.floating[id], let handle = self.apps[pid] else { return }
+            self.captureWork[id] = nil
+            handle.frame(of: id) { [weak self, weak d] frame in
+                guard let self, let d, let frame, d.floating[id] != nil, d.floatingFrames[id] != frame else { return }
+                d.floatingFrames[id] = frame
+                d.framesToRestore.remove(id)
+                self.scheduleSave()
+            }
+        }
+        captureWork[id] = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: work)
+    }
+
+    /// After a restart: put restored floating windows back at their saved frame
+    /// (once), and register them with their app's handle so later moves are
+    /// seen. Only windows on screen on this desktop right now.
+    private func restoreFloatingFrames(on d: Desktop, present: Set<CGWindowID>) {
+        let due = d.framesToRestore.intersection(present)
+        guard !due.isEmpty else { return }
+        d.framesToRestore.subtract(due)
+        var byApp: [pid_t: Set<CGWindowID>] = [:]
+        for id in due { if let pid = d.floating[id] { byApp[pid, default: []].insert(id) } }
+        for (pid, ids) in byApp {
+            if apps[pid] == nil, let app = NSRunningApplication(processIdentifier: pid) { attach(app) }
+            guard let handle = apps[pid] else { continue }
+            handle.resolve(ids) { [weak self, weak d] result in
+                guard let self, let d else { return }
+                for id in ids {
+                    if let f = result[id] { self.facts[id] = f }
+                    guard d.floating[id] != nil, let frame = d.floatingFrames[id], self.frameFits(frame, on: d) else { continue }
+                    handle.setFrame(id, frame)
+                }
+            }
+        }
+    }
+
+    /// Coalesce bursts of frame changes into one write.
+    private func scheduleSave() {
+        saveWork?.cancel()
+        let work = DispatchWorkItem { [weak self] in self?.saveDesktops() }
+        saveWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: work)
     }
 }
 

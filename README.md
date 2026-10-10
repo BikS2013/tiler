@@ -6,7 +6,7 @@ desktop (Space) is left exactly as it is.
 
 It does the core job of [HyprMac](https://github.com/BikS2013-forks/HyprMac): Hyprland-style BSP
 "dwindle" tiling with keyboard focus, swap and resize, and mouse drag-to-swap and drag-to-resize.
-It does this in about 3,600 lines (Settings, the shortcuts overlay, the move/resize mode and focus follows mouse included) instead of 35,000, with no polling, no keyboard event tap and no
+It does this in about 3,700 lines (Settings, the shortcuts overlay, the move/resize mode and focus follows mouse included) instead of 35,000, with no polling, no keyboard event tap and no
 virtual workspaces.
 
 ## Use it
@@ -56,8 +56,10 @@ second until it stops, instead of handling every mouse event.
 
 ### Floating windows
 
-`⌃⌘T` floats the focused window (centred at 60 %) or tiles it again. Floating windows are
-remembered per desktop across Tiler restarts, as long as the window is still open.
+`⌃⌘T` floats the focused window or tiles it again. Floating windows keep their size and
+position: Tiler remembers where each one is, across Tiler restarts and when you float a window
+again after tiling it. A window floated for the first time is centred at 60 % of the screen.
+Everything is forgotten when the window closes.
 
 ### Moving and resizing untiled windows
 
