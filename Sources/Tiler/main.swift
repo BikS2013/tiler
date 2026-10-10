@@ -22,6 +22,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.onShowSettings = { [weak self] pane in self?.showSettings(pane) }
         controller.onShowHotkeys = { moveResize.end(); overlay.toggle() }
         controller.onShowSettings = { [weak self] in self?.showSettings(nil) }
+        controller.transientUIActive = { overlay.isShown || moveResize.isActive }
         controller.onChange = { [weak self] in
             self?.menu?.refreshIcon()
             self?.settings?.model.refresh()

@@ -262,18 +262,44 @@ final class ConfigUpgradeTests: XCTestCase {
         dict["innerGap"] = 12
         let old = try JSONSerialization.data(withJSONObject: dict)
         XCTAssertThrowsError(try Config.parse(old))
-        let (text, added) = try Config.addingMissingHotkeys(to: old)
-        XCTAssertEqual(added, [.moveResize])
+        let (text, added) = try Config.addingMissingSettings(to: old)
+        XCTAssertEqual(added, ["hotkeys.moveResize"])
         let c = try Config.parse(Data(text.utf8))
         XCTAssertEqual(c.innerGap, 12)
         XCTAssertNil(c.hotkeys[.mirror])
         XCTAssertEqual(c.hotkeys[.moveResize], try KeyCombo.parse("ctrl+cmd+m"))
     }
 
+    func testMissingTopLevelSettingsAreAdded() throws {
+        var dict = try JSONSerialization.jsonObject(with: Data(Config.template.utf8)) as! [String: Any]
+        dict.removeValue(forKey: "focusFollowsMouse")
+        dict.removeValue(forKey: "focusDelay")
+        dict["outerGap"] = 20
+        let (text, added) = try Config.addingMissingSettings(to: try JSONSerialization.data(withJSONObject: dict))
+        XCTAssertEqual(added, ["focusDelay", "focusFollowsMouse"])
+        let c = try Config.parse(Data(text.utf8))
+        XCTAssertEqual(c.outerGap, 20)
+        XCTAssertFalse(c.focusFollowsMouse)
+        XCTAssertEqual(c.focusDelay, 0.15)
+    }
+
     func testOtherErrorsStillSurface() throws {
         var dict = try JSONSerialization.jsonObject(with: Data(Config.template.utf8)) as! [String: Any]
-        dict.removeValue(forKey: "outerGap")
-        XCTAssertThrowsError(try Config.addingMissingHotkeys(to: try JSONSerialization.data(withJSONObject: dict)))
+        dict["outerGap"] = "wide"
+        XCTAssertThrowsError(try Config.addingMissingSettings(to: try JSONSerialization.data(withJSONObject: dict)))
+    }
+
+    func testFocusFollowsMouseMustBeABoolean() throws {
+        var dict = try JSONSerialization.jsonObject(with: Data(Config.template.utf8)) as! [String: Any]
+        dict["focusFollowsMouse"] = 1
+        XCTAssertThrowsError(try Config.parse(try JSONSerialization.data(withJSONObject: dict)))
+        dict["focusFollowsMouse"] = true
+        dict["focusDelay"] = 2
+        XCTAssertThrowsError(try Config.parse(try JSONSerialization.data(withJSONObject: dict)))
+        dict["focusDelay"] = 0.3
+        let c = try Config.parse(try JSONSerialization.data(withJSONObject: dict))
+        XCTAssertTrue(c.focusFollowsMouse)
+        XCTAssertEqual(try Config.parse(Data(c.json().utf8)), c)
     }
 }
 

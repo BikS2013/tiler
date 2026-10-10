@@ -1,6 +1,6 @@
 cask "tiler" do
-  version "0.3.0"
-  sha256 "4e042965f57064f39e310ac90ce6f4cd366c317a42117c26f4256a50f79195b1"
+  version "0.4.0"
+  sha256 "1b660b6ce8b9b293cc1524410207d32f456e6ff9f427d91c56106f2e7eae5aa2"
 
   url "https://github.com/BikS2013/tiler/releases/download/v#{version}/Tiler-#{version}.zip"
   name "Tiler"
@@ -34,7 +34,8 @@ cask "tiler" do
     Show every shortcut: Ctrl+Cmd+/   Settings: menu bar icon > Settings...
     Move or resize any untiled window with the keyboard: Ctrl+Cmd+M, then arrows
     (Shift resizes, Option = fine, C centre, M fill, Return done).
-    Upgrading from 0.2: Settings > General > Add Missing Shortcuts.
+    Focus follows mouse (optional): menu bar icon > Focus Follows Mouse.
+    Upgrading: Settings > General > Add Missing Settings (adds new settings only).
     Launch at login: Settings > General.
 
     Decks: https://biks2013.github.io/tiler/

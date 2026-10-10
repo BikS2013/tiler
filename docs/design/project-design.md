@@ -8,7 +8,7 @@ individual macOS desktops: one (display, Space) pair at a time, chosen by the us
 - Same core job as HyprMac (Hyprland-style tiling), restricted to the desktops the user turns on.
 - Never read, move or resize a window on another display or another desktop. The one exception
   is explicit: the move/resize mode acts on the focused window the user asked it to.
-- Fast and light: no polling, no event tap, no work at all while nothing is tiled.
+- Fast and light: no polling, no keyboard event tap, no work at all while nothing is tiled.
 - Few moving parts, so few bugs.
 
 ## What was deliberately left out (compared with HyprMac)
@@ -114,6 +114,37 @@ with `Hotkeys.borrow` and give them back with `release()`.
 - **App bundle**: icon rendered by `scripts/make-icon.swift` (no image assets in the repo), a
   standard About panel, and a hidden main menu so ⌘W/⌘Q/⌘,/editing keys work in Settings.
 - Minimum macOS is 14 (section-header menu items, `NSApp.activate()`, SwiftUI `onChange` two-value form).
+
+### Focus follows mouse
+
+Optional (`focusFollowsMouse`, off in the template; delay `focusDelay`). Designed so it costs
+nothing at rest and almost nothing in motion:
+
+1. **Rest.** A listen-only `CGEventTap` for `mouseMoved` only. Listen-only taps receive copies
+   after delivery, so they cannot delay input, unlike the active keyboard tap HyprMac used. It
+   exists only while the setting is on and at least one desktop is tiled.
+2. **First move.** The callback disables the tap and starts a 40 ms timer that reads the pointer
+   position, so a moving mouse costs at most 25 wake-ups per second however fast it reports.
+3. **Rested** (no movement for `focusDelay`). One `CGWindowListCopyWindowInfo(onScreenOnly)`
+   (~1 ms): if any window at pop-up-menu level or above is on screen (an open menu, a contextual
+   menu, the app switcher) nothing happens; otherwise the topmost window under the pointer,
+   skipping the cursor ("Window Server") and the Dock's full-screen overlay, decides. It is
+   focused only if it is a layer-0 window the visible tiled desktop owns (tile or floating) and is
+   not focused already; a menu, popover or panel on top blocks. The timer stops, the tap is on again.
+
+Measured on this Mac (synthetic mouse events at 80 Hz): 0 CPU idle; 0.015 s of CPU per 10 s of
+continuous motion (~0.15 % of a core). An `NSEvent` global monitor (one wake-up per event) cost
+about 0.13 s for the same motion, so the tap-then-track design is about 9× cheaper. Skipped while
+the shortcuts overlay or the move/resize mode is up, during drags and with a mouse button down.
+
+### Floating windows persist
+
+`Desktop.floating` maps each floating window id to its owner pid. `desktops.json` stores, per
+desktop, `displayUUID`, `spaceUUID` and `floating: [{id, pid}]` (the 0.2/0.3 list of keys is still
+read). On restore a window stays floating only if that id exists now and belongs to the same pid,
+because window ids restart after a logout or reboot. Entries drop when the window is destroyed or
+its app quits. Reconcile no longer prunes floating windows that are merely hidden, minimised or on
+another Space.
 
 ### Move/resize mode (untiled windows)
 

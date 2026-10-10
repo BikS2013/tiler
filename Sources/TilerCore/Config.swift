@@ -206,8 +206,15 @@ public struct Config: Equatable {
     public let floatingApps: Set<String>
     /// Action → key combination. Actions set to "none" are unbound.
     public let hotkeys: [Action: KeyCombo]
+    /// Focus the window under the mouse on tiled desktops once the pointer rests.
+    public let focusFollowsMouse: Bool
+    /// How long the pointer must rest before focus follows it (0.05...1 s).
+    public let focusDelay: Double
 
-    public init(innerGap: Double, outerGap: Double, resizeStep: Double, floatingApps: Set<String>, hotkeys: [Action: KeyCombo]) {
+    public init(innerGap: Double, outerGap: Double, resizeStep: Double, floatingApps: Set<String>, hotkeys: [Action: KeyCombo],
+                focusFollowsMouse: Bool, focusDelay: Double) {
+        self.focusFollowsMouse = focusFollowsMouse
+        self.focusDelay = focusDelay
         self.innerGap = innerGap
         self.outerGap = outerGap
         self.resizeStep = resizeStep
@@ -238,6 +245,8 @@ public struct Config: Equatable {
           "innerGap": \(num(innerGap)),
           "outerGap": \(num(outerGap)),
           "resizeStep": \(num(resizeStep)),
+          "focusFollowsMouse": \(focusFollowsMouse),
+          "focusDelay": \(num(focusDelay)),
           "floatingApps": [\(apps.isEmpty ? "" : "\n" + apps + "\n  ")],
           "hotkeys": {
         \(keys)
@@ -247,23 +256,34 @@ public struct Config: Equatable {
         """
     }
 
-    /// The file text with every missing hotkey added from the template, for the
-    /// explicit "Add Missing Shortcuts" action in Settings after an upgrade adds
-    /// an action. Nothing else is touched, and the result is parsed before it is
-    /// returned, so any other error still surfaces.
-    public static func addingMissingHotkeys(to data: Data) throws -> (text: String, added: [Action]) {
-        guard var dict = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
-              var keys = dict["hotkeys"] as? [String: String] else {
-            throw ConfigError.unreadable("the file has no readable \"hotkeys\" object")
+    /// The file text with every missing setting added from the template, for the
+    /// explicit "Add Missing Settings" action in Settings after an upgrade adds
+    /// settings or actions. Values already in the file are never changed, and the
+    /// result is parsed before it is returned, so any other error still surfaces.
+    public static func addingMissingSettings(to data: Data) throws -> (text: String, added: [String]) {
+        guard var dict = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else {
+            throw ConfigError.unreadable("not a JSON object")
         }
-        let added = Action.allCases.filter { keys[$0.rawValue] == nil }
-        for action in added { keys[action.rawValue] = defaults.hotkeys[action]?.canonicalText ?? "none" }
-        dict["hotkeys"] = keys
+        let template = try JSONSerialization.jsonObject(with: Data(Self.template.utf8)) as! [String: Any]
+        var added: [String] = []
+        for key in topLevelKeys.sorted() where dict[key] == nil {
+            dict[key] = template[key]
+            added.append(key)
+        }
+        if var keys = dict["hotkeys"] as? [String: String] {
+            let defaults = template["hotkeys"] as! [String: String]
+            for action in Action.allCases where keys[action.rawValue] == nil {
+                keys[action.rawValue] = defaults[action.rawValue]
+                added.append("hotkeys.\(action.rawValue)")
+            }
+            dict["hotkeys"] = keys
+        }
         let merged = try parse(try JSONSerialization.data(withJSONObject: dict))
         return (merged.json(), added)
     }
 
-    public static let topLevelKeys: Set<String> = ["innerGap", "outerGap", "resizeStep", "floatingApps", "hotkeys"]
+    public static let topLevelKeys: Set<String> = ["innerGap", "outerGap", "resizeStep", "focusFollowsMouse", "focusDelay",
+                                                   "floatingApps", "hotkeys"]
 
     public static func parse(_ data: Data) throws -> Config {
         let object: Any
@@ -282,6 +302,11 @@ public struct Config: Equatable {
         }
 
         let inner = try number("innerGap", 0...200)
+        guard let rawFollow = dict["focusFollowsMouse"] else { throw ConfigError.missingKey("focusFollowsMouse") }
+        guard let follow = rawFollow as? Bool, CFGetTypeID(rawFollow as CFTypeRef) == CFBooleanGetTypeID() else {
+            throw ConfigError.badValue("focusFollowsMouse", "must be true or false")
+        }
+        let delay = try number("focusDelay", 0.05...1)
         let outer = try number("outerGap", 0...400)
         let step = try number("resizeStep", 0.01...0.5)
 
@@ -300,7 +325,8 @@ public struct Config: Equatable {
             guard seen.insert(combo).inserted else { throw ConfigError.duplicateHotkey(raw) }
             hotkeys[action] = combo
         }
-        return Config(innerGap: inner, outerGap: outer, resizeStep: step, floatingApps: Set(apps), hotkeys: hotkeys)
+        return Config(innerGap: inner, outerGap: outer, resizeStep: step, floatingApps: Set(apps), hotkeys: hotkeys,
+                      focusFollowsMouse: follow, focusDelay: delay)
     }
 
     /// The file written on first launch. Edit it and choose "Reload Config".
@@ -309,6 +335,8 @@ public struct Config: Equatable {
       "innerGap": 8,
       "outerGap": 8,
       "resizeStep": 0.05,
+      "focusFollowsMouse": false,
+      "focusDelay": 0.15,
       "floatingApps": [
         "com.apple.systempreferences",
         "com.apple.ActivityMonitor",

@@ -23,12 +23,19 @@
 7. **Old `~/Library/Application Support/Tider/` folder** is left from before the rename (its
    `desktops.json` was copied to the `Tiler` folder). Safe to delete.
 
-8. **Floating state is not saved across restarts.** A window floated with `⌃⌘T` is tiled again
-   when Tiler restarts (seen 2026-10-10 while testing the move/resize mode after a reinstall).
 9. **Move/resize mode keeps a window on its display.** Moving a window to another display with
    the keyboard is not supported (frames are clamped to the window's display).
 
 ## Completed
+
+- **2026-10-10 — Floating windows were tiled again after a Tiler restart (0.4.0).** Floating is
+  now saved per desktop with the window's owner pid and validated on restore; closed windows and
+  quit apps drop out. Checked live: a floated TextEdit window stayed floating across a restart;
+  closing it removed the entry.
+- **2026-10-10 — Focus follows mouse (0.4.0).** Listen-only mouse tap at rest, 40 ms tracking
+  while moving, one window-list read at rest. Checked live: focus follows a resting pointer
+  across three apps; a fast pass does not focus; an open menu blocks it. CPU: 0 idle, 0.015 s per
+  10 s of motion (an NSEvent global monitor measured ~0.13 s, so it was replaced).
 
 - **2026-10-10 — Keyboard move/resize for untiled windows (0.3.0).** `⌃⌘M` mode
   (`MoveResizeMode`, `WindowNudge`, `Hotkeys.borrow`). Checked live on a floated TextEdit window:
@@ -65,6 +72,13 @@
   carry `needsLayout`, set on display changes and config reloads.
 
 ## Release log
+
+- **2026-10-10 — v0.4.0 (build 9).** Floating windows persist; focus follows mouse; Add Missing
+  Settings. `scripts/package.sh`: 29 tests passed; app and disk image `status: Accepted`,
+  `source=Notarized Developer ID`. Zip SHA-256
+  `1b660b6ce8b9b293cc1524410207d32f456e6ff9f427d91c56106f2e7eae5aa2`, DMG
+  `47ee563a1b9e4b99996dae05ba0ec8fd676149cfccd81a441f542aded5217492`. Installed over 0.3.0
+  here; Accessibility kept.
 
 - **2026-10-10 — v0.3.0 (build 3).** Keyboard move/resize mode, Add Missing Shortcuts, MIT
   license. `scripts/package.sh`: 27 tests passed; app and disk image `status: Accepted`, stapled,

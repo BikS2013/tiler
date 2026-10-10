@@ -76,16 +76,16 @@ final class SettingsModel: ObservableObject {
         refresh()
     }
 
-    /// The file only lacks shortcuts a newer version added (an upgrade).
-    var onlyMissingShortcuts: Bool { configError?.contains("missing required key 'hotkeys.") == true }
+    /// The file only lacks settings a newer version added (an upgrade).
+    var onlyMissingSettings: Bool { configError?.contains("missing required key") == true }
 
-    /// Explicit, user-chosen fix after an upgrade: add the template binding for
-    /// each action the file lacks, leave everything else as it is.
-    func addMissingShortcuts() {
+    /// Explicit, user-chosen fix after an upgrade: add the template value for
+    /// each setting or shortcut the file lacks, leave everything else as it is.
+    func addMissingSettings() {
         do {
-            let (text, added) = try Config.addingMissingHotkeys(to: Data(contentsOf: Controller.configURL))
+            let (text, added) = try Config.addingMissingSettings(to: Data(contentsOf: Controller.configURL))
             try Data(text.utf8).write(to: Controller.configURL, options: .atomic)
-            log.info("added missing shortcuts: \(added.map(\.rawValue).joined(separator: ", "), privacy: .public)")
+            log.info("added missing settings: \(added.joined(separator: ", "), privacy: .public)")
             controller.reloadConfig()
             saveError = nil
         } catch {
@@ -101,12 +101,16 @@ final class SettingsModel: ObservableObject {
         var innerGap, outerGap, resizeStep: Double
         var floatingApps: Set<String>
         var hotkeys: [Action: KeyCombo]
+        var focusFollowsMouse: Bool
+        var focusDelay: Double
         init(_ c: Config) {
             innerGap = c.innerGap; outerGap = c.outerGap; resizeStep = c.resizeStep
             floatingApps = c.floatingApps; hotkeys = c.hotkeys
+            focusFollowsMouse = c.focusFollowsMouse; focusDelay = c.focusDelay
         }
         var config: Config {
-            Config(innerGap: innerGap, outerGap: outerGap, resizeStep: resizeStep, floatingApps: floatingApps, hotkeys: hotkeys)
+            Config(innerGap: innerGap, outerGap: outerGap, resizeStep: resizeStep, floatingApps: floatingApps, hotkeys: hotkeys,
+                   focusFollowsMouse: focusFollowsMouse, focusDelay: focusDelay)
         }
     }
 }
@@ -189,8 +193,8 @@ private struct ConfigErrorBanner: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("The configuration file has an error").font(.headline)
                         Text(error).font(.callout).foregroundStyle(.secondary).textSelection(.enabled)
-                        Text(model.onlyMissingShortcuts
-                             ? "This version adds new shortcuts. Add Missing Shortcuts gives them their default keys and changes nothing else in the file."
+                        Text(model.onlyMissingSettings
+                             ? "This version adds new settings. Add Missing Settings gives them their default values and changes nothing else in the file."
                              : "Fix the file and choose Reload, or restore the defaults. Settings can’t be edited until then.")
                             .font(.callout).foregroundStyle(.secondary)
                     }
@@ -201,10 +205,10 @@ private struct ConfigErrorBanner: View {
                     Button("Open in Editor") { NSWorkspace.shared.open(Controller.configURL) }
                     Button("Reload") { model.controller.reloadConfig(); model.refresh() }
                     Spacer()
-                    if model.onlyMissingShortcuts {
-                        Button("Add Missing Shortcuts") { model.addMissingShortcuts() }
+                    if model.onlyMissingSettings {
+                        Button("Add Missing Settings") { model.addMissingSettings() }
                             .keyboardShortcut(.defaultAction)
-                            .help("Adds the default key for each new action; nothing else in the file changes")
+                            .help("Adds the default value for each new setting; nothing else in the file changes")
                     }
                     Button("Restore Defaults") { model.restoreDefaults() }
                 }
@@ -225,6 +229,17 @@ private struct GeneralPane: View {
             ConfigErrorBanner()
             Section {
                 Toggle("Launch Tiler at login", isOn: Binding(get: { model.launchAtLogin }, set: { model.setLaunchAtLogin($0) }))
+            }
+            Section {
+                Toggle("Focus follows mouse", isOn: Binding(get: { model.config.focusFollowsMouse },
+                                                           set: { v in model.update { $0.focusFollowsMouse = v } }))
+                    .disabled(!model.editable)
+                DelaySlider(value: model.config.focusDelay) { v in model.update { $0.focusDelay = v } }
+                    .disabled(!model.editable || !model.config.focusFollowsMouse)
+            } header: {
+                Text("Focus")
+            } footer: {
+                Footnote("On tiled desktops, the window under the pointer gets focus once the pointer rests for the delay. Menus, popovers and floating windows on top are respected, and nothing happens on desktops Tiler does not tile.")
             }
             Section {
                 LabeledContent("Accessibility") {
@@ -307,6 +322,26 @@ private struct LayoutPane: View {
         .disabled(!model.editable)
         .frame(width: 520)
         .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
+/// The focus-follows-mouse delay, in milliseconds, committed on release.
+private struct DelaySlider: View {
+    let value: Double
+    let commit: (Double) -> Void
+    @State private var live: Double?
+
+    var body: some View {
+        LabeledContent("Delay") {
+            HStack(spacing: 10) {
+                Slider(value: Binding(get: { live ?? value }, set: { live = ($0 * 100).rounded() / 100 }), in: 0.05...1) { editing in
+                    if !editing, let v = live { commit(v); live = nil }
+                }
+                .frame(width: 200)
+                Text(verbatim: "\(Int(((live ?? value) * 1000).rounded())) ms").monospacedDigit()
+                    .foregroundStyle(.secondary).frame(width: 60, alignment: .trailing)
+            }
+        }
     }
 }
 

@@ -23,7 +23,9 @@ brew upgrade --cask tiler
 3. Press **Ctrl+Cmd+/** to see every shortcut. Change them in **Settings…**.
 4. Press **Ctrl+Cmd+M** to move or resize any untiled window with the arrow keys (⇧ resizes, ⌥ fine steps, C centre, M fill, Return done).
 
-Upgrading from 0.2: open **Settings…** and click **Add Missing Shortcuts** once (the new shortcut needs a key in your config file).
+5. Optional: menu bar icon → **Focus Follows Mouse**.
+
+Upgrading: open **Settings…** and click **Add Missing Settings** once; it adds the new settings to your config file and changes nothing else.
 
 Decks: [for users and for engineers](https://biks2013.github.io/tiler/).
 

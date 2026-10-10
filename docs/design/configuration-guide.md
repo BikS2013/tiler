@@ -20,6 +20,8 @@ valid configuration (with none, nothing tiles).
 | `innerGap` | number, 0–200 | 8 | Points between neighbouring tiles. |
 | `outerGap` | number, 0–400 | 8 | Points between the tiles and the usable screen edge (menu bar and Dock excluded). |
 | `resizeStep` | number, 0.01–0.5 | 0.05 | Share of a split moved by one resize keypress. |
+| `focusFollowsMouse` | `true` / `false` | `false` | On tiled desktops, focus the window under the pointer once it rests. Also toggled from the menu and Settings → General. |
+| `focusDelay` | number (seconds), 0.05–1 | 0.15 | How long the pointer must rest before focus follows it. Lower feels snappier; higher avoids focusing windows you only cross. |
 | `floatingApps` | array of bundle ids | System Settings, Activity Monitor, Calculator | Apps whose windows are never tiled. Find an id with `osascript -e 'id of app "Name"'`. |
 | `hotkeys` | object, every action required | see below | Action → key combination, or `"none"` to unbind. |
 
@@ -38,9 +40,9 @@ Actions: `toggleDesktop`, `focusLeft/Right/Up/Down`, `swapLeft/Right/Up/Down`,
 focus. The keys used inside the move/resize mode (arrows, ⇧, ⌥, C, M, Return, Esc) are fixed.
 
 **Upgrading.** A config file written by an older version lacks the newer actions and is rejected
-("missing required key 'hotkeys.moveResize'"); nothing is filled in silently. Settings → General
-then offers **Add Missing Shortcuts**, which adds the template binding for each missing action and
-changes nothing else (or add the keys by hand, or Restore Defaults).
+("missing required key 'focusFollowsMouse'"); nothing is filled in silently. Settings → General
+then offers **Add Missing Settings**, which adds the template value for each missing setting or
+shortcut and changes nothing else (or add the keys by hand, or Restore Defaults).
 
 Settings ranges are narrower than the file allows for convenience (gaps 0–48 / 0–64 pt, resize
 step 1–25 %); a larger value set in the file is kept and shown.
@@ -52,7 +54,7 @@ that side if there is one, otherwise the opposite one).
 
 | File | Content |
 |---|---|
-| `desktops.json` (same folder) | Tiled desktops (display UUID + Space uuid). Written by Tiler; safe to delete to forget all. |
+| `desktops.json` (same folder) | Tiled desktops (display UUID + Space uuid) and, per desktop, the floating windows (window id + owner pid). Written by Tiler; safe to delete to forget all. |
 
 ## Build-time setting
 

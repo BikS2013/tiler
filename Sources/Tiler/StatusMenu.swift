@@ -1,4 +1,5 @@
 import AppKit
+import TilerCore
 
 /// The menu bar item. Its menu acts on the display whose menu bar was clicked,
 /// so "Tile This Desktop" always means the desktop right under the pointer.
@@ -69,6 +70,11 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         move.isEnabled = controller.started
         move.toolTip = "Move or resize the focused window with the keyboard (not a tiled one)"
 
+        let follow = add("Focus Follows Mouse", "cursorarrow.rays", #selector(toggleFocusFollowsMouse))
+        follow.state = controller.config?.focusFollowsMouse == true ? .on : .off
+        follow.isEnabled = controller.config != nil && controller.configError == nil
+        follow.toolTip = "On tiled desktops, focus the window under the pointer when it rests"
+
         menu.addItem(.separator())
         add("Keyboard Shortcuts", "keyboard", #selector(showShortcuts)).show(hotkeys[.showHotkeys])
         let settings = add("Settings…", "gearshape", #selector(openSettings))
@@ -102,6 +108,18 @@ final class StatusMenu: NSObject, NSMenuDelegate {
 
     @objc private func moveResizeWindow() {
         DispatchQueue.main.async { self.onMoveResize?() }
+    }
+
+    @objc private func toggleFocusFollowsMouse() {
+        guard let c = controller.config else { return }
+        do {
+            try controller.save(Config(innerGap: c.innerGap, outerGap: c.outerGap, resizeStep: c.resizeStep,
+                                       floatingApps: c.floatingApps, hotkeys: c.hotkeys,
+                                       focusFollowsMouse: !c.focusFollowsMouse, focusDelay: c.focusDelay))
+        } catch {
+            log.error("could not save config: \(error.localizedDescription)")
+            NSSound.beep()
+        }
     }
 
     @objc private func openSettings() { onShowSettings?(nil) }

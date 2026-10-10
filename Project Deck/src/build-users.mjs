@@ -5,7 +5,7 @@ import { execFileSync } from 'node:child_process';
 const SKILL = process.env.NBG_DESIGN_SCRIPTS
   ?? '/Users/giorgosmarinos/.claude/plugins/cache/nbg-design/nbg-design/1.23.0/skills/nbg-design/scripts';
 const shots = { SHOT_MENU: 'menu', SHOT_OVERLAY: 'shortcuts-overlay', SHOT_GENERAL: 'settings-general',
-  SHOT_LAYOUT: 'settings-layout', SHOT_SHORTCUTS: 'settings-shortcuts', SHOT_APPS: 'settings-apps', SHOT_MOVE: 'move-resize-hud' };
+  SHOT_LAYOUT: 'settings-layout', SHOT_SHORTCUTS: 'settings-shortcuts', SHOT_APPS: 'settings-apps', SHOT_MOVE: 'move-resize-hud', SHOT_FOCUS: 'settings-focus' };
 let html = readFileSync('src/tiler-users.src.html', 'utf8');
 for (const [tok, name] of Object.entries(shots)) {
   const uri = 'data:image/png;base64,' + readFileSync(`screenshots/${name}.png`).toString('base64');

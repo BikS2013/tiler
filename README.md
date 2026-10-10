@@ -6,7 +6,7 @@ desktop (Space) is left exactly as it is.
 
 It does the core job of [HyprMac](https://github.com/BikS2013-forks/HyprMac): Hyprland-style BSP
 "dwindle" tiling with keyboard focus, swap and resize, and mouse drag-to-swap and drag-to-resize.
-It does this in about 3,300 lines (Settings, the shortcuts overlay and the move/resize mode included) instead of 35,000, with no polling, no event tap and no
+It does this in about 3,600 lines (Settings, the shortcuts overlay, the move/resize mode and focus follows mouse included) instead of 35,000, with no polling, no keyboard event tap and no
 virtual workspaces.
 
 ## Use it
@@ -41,6 +41,23 @@ float, and Launch at Login.
 | `⌃⌘R` | Retile: re-read the desktop and rewrite every tile |
 | `⌃⌘/` | Show the keyboard shortcuts overlay (works everywhere) |
 | `⌃⌘M` | Move or resize the focused untiled window with the keyboard (works everywhere, see below) |
+
+### Focus follows mouse
+
+Off by default. Turn it on from the menu (**Focus Follows Mouse**) or in Settings → General, where
+you can also set the delay (default 150 ms). On a tiled desktop, the window under the pointer gets
+focus once the pointer rests there; passing over a window does not focus it. Menus, popovers and
+floating windows on top are respected, an open menu is never closed, and desktops Tiler does not
+tile are left alone.
+
+It costs nothing while the mouse is still and about 0.15 % of one core while it moves: a
+listen-only listener wakes Tiler on the first movement, then Tiler checks the pointer 25 times a
+second until it stops, instead of handling every mouse event.
+
+### Floating windows
+
+`⌃⌘T` floats the focused window (centred at 60 %) or tiles it again. Floating windows are
+remembered per desktop across Tiler restarts, as long as the window is still open.
 
 ### Moving and resizing untiled windows
 

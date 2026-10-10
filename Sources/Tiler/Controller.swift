@@ -21,6 +21,9 @@ final class Controller {
     var onShowHotkeys: (() -> Void)?
     /// The move/resize shortcut was pressed.
     var onMoveResize: (() -> Void)?
+    /// True while a transient UI (shortcuts overlay, move/resize mode) is up;
+    /// focus does not follow the mouse then.
+    var transientUIActive: (() -> Bool)?
     /// A second launch or `tiler-ctl.sh settings` asked for the Settings window.
     var onShowSettings: (() -> Void)?
     /// True while Settings records a shortcut: no hotkey is registered, so the
@@ -75,6 +78,7 @@ final class Controller {
         ws.addObserver(forName: NSWorkspace.didTerminateApplicationNotification, object: nil, queue: .main) { [weak self] n in
             guard let self, let app = n.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
             detach(app.processIdentifier)
+            forgetFloating(of: app.processIdentifier)
             scheduleReconcile()
         }
         for name in [NSWorkspace.didHideApplicationNotification, NSWorkspace.didUnhideApplicationNotification] {
@@ -104,6 +108,7 @@ final class Controller {
         if !desktops.isEmpty { attachAll() }
         if let front = NSWorkspace.shared.frontmostApplication { readFocus(of: front) }
         updateHotkeys()
+        updateMouseMonitor()
         scheduleReconcile()
     }
 
@@ -127,7 +132,7 @@ final class Controller {
             for d in desktops.values {
                 let visible = Spaces.current(onDisplay: d.key.displayUUID) == d.spaceID
                 let tiles = d.tree.windows.map { id in "\(id)@\(d.frames[id].map { "\($0)" } ?? "-")" }
-                log.notice("desktop \(d.key.displayUUID, privacy: .public)/\(d.spaceID) visible=\(visible) tiles=\(tiles, privacy: .public) floating=\(d.floating.sorted(), privacy: .public)")
+                log.notice("desktop \(d.key.displayUUID, privacy: .public)/\(d.spaceID) visible=\(visible) tiles=\(tiles, privacy: .public) floating=\(d.floating.keys.sorted(), privacy: .public)")
             }
             log.notice("apps=\(self.apps.count) facts=\(self.facts.count) focused=\(String(describing: self.focused), privacy: .public)")
         default:
@@ -154,6 +159,7 @@ final class Controller {
             log.error("config: \(self.configError ?? "")")
         }
         updateHotkeys()
+        updateMouseMonitor()
         scheduleReconcile()
         onChange?()
     }
@@ -216,29 +222,68 @@ final class Controller {
         if desktops.isEmpty { detachAll() } else { attachAll() }
         if let front = NSWorkspace.shared.frontmostApplication { readFocus(of: front) }
         updateHotkeys()
+        updateMouseMonitor()
         reconcile()
         onChange?()
     }
 
     private func saveDesktops() {
+        let saved = desktops.values.map { d in
+            SavedDesktop(displayUUID: d.key.displayUUID, spaceUUID: d.key.spaceUUID,
+                         floating: d.floating.map { SavedDesktop.Window(id: $0.key, pid: $0.value) }.sorted { $0.id < $1.id })
+        }.sorted { ($0.displayUUID, $0.spaceUUID) < ($1.displayUUID, $1.spaceUUID) }
         do {
             try FileManager.default.createDirectory(at: Self.supportDir, withIntermediateDirectories: true)
-            try JSONEncoder().encode(Array(desktops.keys)).write(to: Self.desktopsURL)
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            try encoder.encode(saved).write(to: Self.desktopsURL, options: .atomic)
         } catch {
             log.error("could not save desktops: \(error.localizedDescription)")
         }
     }
 
     private func restoreDesktops() {
-        guard let data = try? Data(contentsOf: Self.desktopsURL),
-              let keys = try? JSONDecoder().decode([DesktopKey].self, from: data) else { return }
+        guard let data = try? Data(contentsOf: Self.desktopsURL) else { return }
+        // 0.2 and 0.3 wrote a plain list of desktop keys; read that too.
+        let saved = (try? JSONDecoder().decode([SavedDesktop].self, from: data))
+            ?? ((try? JSONDecoder().decode([DesktopKey].self, from: data)) ?? []).map {
+                SavedDesktop(displayUUID: $0.displayUUID, spaceUUID: $0.spaceUUID, floating: [])
+            }
         let spaces = Dictionary(Spaces.all().map { ($0.uuid, $0.id) }, uniquingKeysWith: { a, _ in a })
-        for key in keys {
-            // A desktop deleted in Mission Control is forgotten.
-            guard let id = spaces[key.spaceUUID] else { continue }
-            desktops[key] = Desktop(key: key, spaceID: id)
+        // A floating window is kept only if that window id still exists and still
+        // belongs to the same process (ids restart after a logout or reboot).
+        var owners: [CGWindowID: pid_t] = [:]
+        if saved.contains(where: { !$0.floating.isEmpty }),
+           let list = CGWindowListCopyWindowInfo(.optionAll, kCGNullWindowID) as? [[String: Any]] {
+            for info in list {
+                if let id = info[kCGWindowNumber as String] as? CGWindowID, let pid = info[kCGWindowOwnerPID as String] as? pid_t {
+                    owners[id] = pid
+                }
+            }
         }
-        if desktops.count != keys.count { saveDesktops() }
+        var dropped = false
+        for entry in saved {
+            let key = DesktopKey(displayUUID: entry.displayUUID, spaceUUID: entry.spaceUUID)
+            // A desktop deleted in Mission Control is forgotten.
+            guard let id = spaces[key.spaceUUID] else { dropped = true; continue }
+            let d = Desktop(key: key, spaceID: id)
+            for w in entry.floating {
+                if owners[w.id] == w.pid { d.floating[w.id] = w.pid } else { dropped = true }
+            }
+            desktops[key] = d
+        }
+        if dropped { saveDesktops() }
+    }
+
+    /// An app quit: its windows are gone, so they no longer float anywhere.
+    private func forgetFloating(of pid: pid_t) {
+        var changed = false
+        for d in desktops.values {
+            let before = d.floating.count
+            d.floating = d.floating.filter { $0.value != pid }
+            changed = changed || d.floating.count != before
+        }
+        if changed { saveDesktops() }
     }
 
     private func refreshSpaceIDs() {
@@ -292,7 +337,7 @@ final class Controller {
             rechecked.remove(id)
             for d in desktops.values where d.owns(id) {
                 d.tree.remove(id)
-                d.floating.remove(id)
+                if d.floating.removeValue(forKey: id) != nil { saveDesktops() }
                 d.applied[id] = nil
                 layout(d)
             }
@@ -393,7 +438,9 @@ final class Controller {
                 d.applied[id] = nil
                 changed = true
             }
-            d.floating.formIntersection(presentIDs)
+            // Floating windows are not pruned here: a hidden, minimised or moved
+            // window keeps floating. Closed windows and quit apps drop out
+            // through the destroyed / terminate events.
 
             // Back to front, so the frontmost new window is inserted last.
             for w in present.reversed() where !d.owns(w.id) && !isFloatingApp(w.pid) {
@@ -493,6 +540,111 @@ final class Controller {
         }
     }
 
+    // MARK: Focus follows mouse
+
+    /// Focus follows mouse is event-driven at rest and bounded while moving:
+    /// - At rest a listen-only event tap waits for a mouse-moved event. Listen-
+    ///   only taps get copies after delivery, so they never delay input (unlike
+    ///   the active keyboard tap HyprMac used), and the tap exists only while the
+    ///   setting is on and a desktop is tiled.
+    /// - The first move switches the tap off and starts a 40 ms check of the
+    ///   pointer position, so a moving mouse costs at most 25 cheap wake-ups a
+    ///   second however fast it reports, instead of one per event.
+    /// - Once the pointer has not moved for `focusDelay`, the window under it is
+    ///   focused if needed, the check stops and the tap is switched back on.
+    private var mouseTap: CFMachPort?
+    private var mouseTapSource: CFRunLoopSource?
+    private var trackTimer: Timer?
+    private var lastPoint: CGPoint = .zero
+    private var lastMove: CFTimeInterval = 0
+
+    private func updateMouseMonitor() {
+        let want = started && config?.focusFollowsMouse == true && !desktops.isEmpty
+        if want, mouseTap == nil {
+            let mask = CGEventMask(1 << CGEventType.mouseMoved.rawValue)
+            guard let tap = CGEvent.tapCreate(tap: .cgSessionEventTap, place: .tailAppendEventTap, options: .listenOnly,
+                                              eventsOfInterest: mask, callback: mouseMovedCallback,
+                                              userInfo: Unmanaged.passUnretained(self).toOpaque()) else {
+                log.error("focus follows mouse: could not create the mouse-moved listener")
+                return
+            }
+            let source = CFMachPortCreateRunLoopSource(nil, tap, 0)
+            CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
+            mouseTap = tap
+            mouseTapSource = source
+        } else if !want, let tap = mouseTap {
+            CGEvent.tapEnable(tap: tap, enable: false)
+            if let source = mouseTapSource { CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes) }
+            CFMachPortInvalidate(tap)
+            mouseTap = nil
+            mouseTapSource = nil
+            trackTimer?.invalidate()
+            trackTimer = nil
+        }
+    }
+
+    /// The first move after a rest: stop listening, follow the pointer until it rests.
+    fileprivate func pointerStartedMoving(at point: CGPoint) {
+        guard let tap = mouseTap, trackTimer == nil else { return }
+        CGEvent.tapEnable(tap: tap, enable: false)
+        lastPoint = point
+        lastMove = CACurrentMediaTime()
+        let t = Timer(timeInterval: 0.04, repeats: true) { [weak self] _ in self?.trackPointer() }
+        RunLoop.main.add(t, forMode: .common)
+        trackTimer = t
+    }
+
+    private func trackPointer() {
+        let now = CACurrentMediaTime()
+        if let p = CGEvent(source: nil)?.location, p != lastPoint {
+            lastPoint = p
+            lastMove = now
+            return
+        }
+        guard now - lastMove >= (config?.focusDelay ?? 0.15) else { return }
+        trackTimer?.invalidate()
+        trackTimer = nil
+        pointerRested()
+        if let tap = mouseTap { CGEvent.tapEnable(tap: tap, enable: true) }
+    }
+
+    /// The system disables a tap it thinks is slow; turn it back on unless a
+    /// tracking pass has it off on purpose.
+    fileprivate func reenableMouseTap() {
+        if let tap = mouseTap, trackTimer == nil { CGEvent.tapEnable(tap: tap, enable: true) }
+    }
+
+    /// The pointer stopped: focus the window under it if it is a window of the
+    /// visible tiled desktop there and is not focused already. One window-list
+    /// read (about a millisecond); nothing at all when the pointer is elsewhere.
+    private func pointerRested() {
+        guard NSEvent.pressedMouseButtons == 0, drag == nil, transientUIActive?() != true,
+              let mouse = CGEvent(source: nil)?.location,
+              let screen = Screen.all().first(where: { $0.bounds.contains(mouse) }),
+              let d = visibleDesktop(onDisplay: screen.uuid),
+              let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]]
+        else { return }
+        // An open menu (any app's, or a contextual menu), the app switcher or a
+        // similar system overlay: leave focus alone so it is not dismissed.
+        if list.contains(where: { ($0[kCGWindowLayer as String] as? Int ?? 0) >= Int(CGWindowLevelForKey(.popUpMenuWindow))
+                                  && $0[kCGWindowOwnerName as String] as? String != "Window Server" }) { return }
+        for info in list {
+            guard let b = info[kCGWindowBounds as String] as? NSDictionary,
+                  let bounds = CGRect(dictionaryRepresentation: b), bounds.contains(mouse),
+                  (info[kCGWindowAlpha as String] as? Double ?? 1) > 0 else { continue }
+            // The cursor and the Dock's full-screen window sit above everything.
+            let owner = info[kCGWindowOwnerName as String] as? String
+            if owner == "Window Server" || owner == "Dock" { continue }
+            // The topmost real window decides. A menu, popover or panel on top
+            // (any layer but 0) blocks, so an open menu is never closed.
+            guard info[kCGWindowLayer as String] as? Int == 0,
+                  let id = info[kCGWindowNumber as String] as? CGWindowID,
+                  d.owns(id), id != focused?.id else { return }
+            focus(id)
+            return
+        }
+    }
+
     // MARK: Hotkeys
 
     /// The display the user is working on: the one holding the focused
@@ -558,13 +710,15 @@ final class Controller {
             if d.tree.contains(fid) {
                 d.tree.remove(fid)
                 d.applied[fid] = nil
-                d.floating.insert(fid)
+                d.floating[fid] = facts[fid]?.pid ?? focused?.pid
                 layout(d)
                 centerFloating(fid, on: d)
-            } else if d.floating.remove(fid) != nil {
+                saveDesktops()
+            } else if d.floating.removeValue(forKey: fid) != nil {
                 d.tree.insert(fid, splitting: d.lastFocused.flatMap { d.tree.contains($0) ? $0 : nil })
                 d.lastFocused = fid
                 layout(d)
+                saveDesktops()
             }
         case .toggleSplit:
             guard let id else { return }
@@ -610,4 +764,17 @@ final class Controller {
         apps[pid]?.setFrame(id, CGRect(x: (u.midX - size.width / 2).rounded(), y: (u.midY - size.height / 2).rounded(),
                                        width: size.width, height: size.height))
     }
+}
+
+/// Mouse-moved listener (main run loop): hands the first move to the controller.
+private func mouseMovedCallback(_ proxy: CGEventTapProxy, _ type: CGEventType, _ event: CGEvent,
+                                _ userInfo: UnsafeMutableRawPointer?) -> Unmanaged<CGEvent>? {
+    guard let userInfo else { return Unmanaged.passUnretained(event) }
+    let controller = Unmanaged<Controller>.fromOpaque(userInfo).takeUnretainedValue()
+    if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+        controller.reenableMouseTap()
+    } else {
+        controller.pointerStartedMoving(at: event.location)
+    }
+    return Unmanaged.passUnretained(event)
 }

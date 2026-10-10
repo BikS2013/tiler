@@ -59,7 +59,11 @@ desktops (display + Space) the user turns on. Design: `docs/design/project-desig
 - Never touch windows outside a tiled desktop's display **and** Space. Sole exception: the
   move/resize mode (`MoveResizeMode`), which acts only on the focused, untiled window the user
   explicitly asked for, only while the mode is on.
-- No polling and no `CGEventTap`. React to AX/NSWorkspace events; hotkeys via Carbon.
+- No polling and no active `CGEventTap`. React to AX/NSWorkspace events; hotkeys via Carbon. The
+  only tap is focus-follows-mouse's listen-only mouse-moved tap, present only while that setting
+  is on and a desktop is tiled, and switched off while the pointer is being tracked (a bounded
+  40 ms check that runs only while the mouse moves).
+- Floating windows are saved with their owner pid; never trust a saved window id without it.
 - All AX calls for an app run on that app's `AppHandle` thread (or, for the move/resize mode,
   the `WindowMover` thread), never on the main thread.
 - Act on window moved/resized notifications only while the mouse button is down.

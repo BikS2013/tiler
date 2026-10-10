@@ -24,6 +24,7 @@ only where you turn it on; every other display and desktop is left exactly as it
    Ctrl-Cmd-M            move / resize the focused untiled window with the arrows
                          (Shift resizes, Option = fine, C centre, M fill, Return done)
    Drag a tile onto another to swap them; drag an edge to resize.
+   Focus follows mouse (optional): menu bar icon > Focus Follows Mouse.
    Everything can be changed in Settings (menu bar icon > Settings...).
 
 Upgrading: replace the app in Applications; the permission and settings are kept as long as

@@ -108,7 +108,7 @@
     <rect x="288" y="288" width="128" height="272" rx="22" fill="none" stroke="#F6F3EC" stroke-opacity="0.55" stroke-width="3"/>
     <rect x="432" y="288" width="128" height="272" rx="22" fill="none" stroke="#F6F3EC" stroke-opacity="0.55" stroke-width="3" stroke-dasharray="10 8"/>
   </svg>
-  <div style="position:absolute;top:150px;left:90px;font:600 16px var(--mono);letter-spacing:3px;text-transform:uppercase;color:var(--copper-l)">A menu bar app for macOS · v0.3</div>
+  <div style="position:absolute;top:150px;left:90px;font:600 16px var(--mono);letter-spacing:3px;text-transform:uppercase;color:var(--copper-l)">A menu bar app for macOS · v0.4</div>
   <div style="position:absolute;top:250px;left:90px;width:1050px;font-size:150px;font-weight:300;line-height:0.95;letter-spacing:-4px;color:var(--paper)">Tiler</div>
   <div style="position:absolute;top:420px;left:90px;width:1130px;font-size:64px;font-weight:300;line-height:1.08;letter-spacing:-1.2px;color:var(--paper)">Tiling windows, <span style="color:var(--copper-l);font-style:italic;font-weight:400">one desktop at a time.</span></div>
   <div style="position:absolute;top:620px;left:90px;width:900px;font-size:28px;line-height:1.4;color:rgba(246,243,236,0.78)">Turn it on where you want order. Every other desktop and display stays exactly as you left it.</div>
@@ -213,7 +213,7 @@
     <div class="c" style="margin-top:18px;font-size:22px"># update later: brew upgrade --cask tiler</div>
   </div>
   <div class="body" style="position:absolute;top:640px;left:90px;width:820px;font-size:20px">
-    No Homebrew? Download <code>Tiler-0.3.0.zip</code> or the <code>.dmg</code> from <b>github.com/BikS2013/tiler/releases</b> and drag Tiler to Applications.
+    No Homebrew? Download <code>Tiler-0.4.0.zip</code> or the <code>.dmg</code> from <b>github.com/BikS2013/tiler/releases</b> and drag Tiler to Applications.
   </div>
   <div style="position:absolute;top:340px;left:1010px;right:90px">
     <div class="row"><span>Signed</span><b>Developer ID, notarized by Apple</b></div>
@@ -253,7 +253,7 @@
       <li>Remembered across restarts and logins.</li>
       <li>The icon is filled when the current desktop is tiled.</li>
       <li>Full-screen Spaces can't be tiled.</li>
-      <li><b>Move or Resize Window</b> (<span class="k">⌃</span><span class="k">⌘</span><span class="k">M</span>) lives here too.</li>
+      <li><b>Move or Resize Window</b> (<span class="k">⌃</span><span class="k">⌘</span><span class="k">M</span>) and <b>Focus Follows Mouse</b> live here too.</li>
     </ul>
   </div>
   <div class="footer"><div class="left"><img class="logo-foot" src="{{LOGO_SMALL}}" alt="BikS2013"><span>Tiler · user guide</span></div><span class="num">07</span></div>
@@ -264,7 +264,7 @@
   <div class="div-bar"></div>
   <div class="div-num">02</div>
   <div class="div-label">Everyday use.</div>
-  <div class="div-text">Shortcuts for focus, swap, resize and layout; a cheat sheet one key away; keyboard moves for untiled windows; and the mouse when it's quicker.</div>
+  <div class="div-text">Shortcuts for focus, swap, resize and layout; a cheat sheet one key away; keyboard moves for untiled windows; the mouse when it's quicker, and focus that can follow it.</div>
   <div class="dashline"></div>
   <div class="footer"><div class="left"><img class="logo-foot" src="{{LOGO_KNOCKOUT}}" alt="BikS2013"><span>Section 02</span></div><span class="num">08</span></div>
 </section>
@@ -348,31 +348,53 @@
       <p>Move a window onto a tiled desktop and it joins the layout. Drag it to another display and Tiler lets it go.</p></div>
   </div>
   <div style="position:absolute;top:640px;left:90px;right:90px;border-top:2px dashed var(--grey1);padding-top:30px;display:flex;gap:60px;font-size:21px;line-height:1.5;color:rgba(27,29,33,0.82)">
-    <div style="flex:1"><b>Float one window:</b> <span class="k">⌃</span><span class="k">⌘</span><span class="k">T</span> takes it out of the layout and centres it at 60 % of the screen. Press again to tile it.</div>
+    <div style="flex:1"><b>Float one window:</b> <span class="k">⌃</span><span class="k">⌘</span><span class="k">T</span> takes it out of the layout and centres it at 60 % of the screen. Press again to tile it. It stays floating when Tiler restarts.</div>
     <div style="flex:1"><b>Floats on its own:</b> dialogs, panels, non-resizable windows, and apps on the Always Float list (System Settings, Activity Monitor, Calculator by default).</div>
   </div>
   <div class="footer"><div class="left"><img class="logo-foot" src="{{LOGO_SMALL}}" alt="BikS2013"><span>Tiler · user guide</span></div><span class="num">12</span></div>
 </section>
 
-<!-- 13 · DIVIDER 03 -->
+<!-- 13 · FOCUS FOLLOWS MOUSE -->
+<section class="slide" data-name="focus-follows-mouse">
+  <div class="eyebrow">10 · Focus follows mouse</div>
+  <div class="title" style="right:700px">Point at a window, <em>and it's yours.</em></div>
+  <div class="rule"></div>
+  <div class="body" style="position:absolute;top:330px;left:90px;width:760px;font-size:21px">
+    <p style="margin:0 0 18px">On a tiled desktop, rest the pointer on a window for a moment and it takes the keyboard. No click needed; just passing over a window does nothing.</p>
+    <p style="margin:0 0 18px">It is off until you turn it on: menu › <b>Focus Follows Mouse</b>, or Settings › General › Focus, where the delay lives too.</p>
+    <p style="margin:0">Desktops Tiler doesn't tile behave exactly as before.</p>
+  </div>
+  <div style="position:absolute;top:330px;left:960px;right:90px">
+    <div class="grp">What it respects</div>
+    <div class="row"><span>Open menus and the app switcher</span><span class="muted" style="font-size:19px">focus stays put</span></div>
+    <div class="row"><span>Popovers and panels on top</span><span class="muted" style="font-size:19px">they win</span></div>
+    <div class="row"><span>Floating windows over tiles</span><span class="muted" style="font-size:19px">the top one wins</span></div>
+    <div class="row"><span>Delay before focus moves</span><span class="mono" style="font-size:20px">50–1000 ms · 150</span></div>
+    <div class="row"><span>Cost while the mouse moves</span><span class="mono" style="font-size:20px">~0.15 % of a core</span></div>
+  </div>
+  <img class="shot" src="{{SHOT_FOCUS}}" alt="Settings, Focus section" style="top:700px;left:960px;width:740px;height:242px;border:1px solid var(--grey1);border-radius:12px">
+  <div class="footer"><div class="left"><img class="logo-foot" src="{{LOGO_SMALL}}" alt="BikS2013"><span>Tiler · user guide</span></div><span class="num">13</span></div>
+</section>
+
+<!-- 14 · DIVIDER 03 -->
 <section class="slide dark" data-name="divider-settings">
   <div class="div-bar"></div>
   <div class="div-num">03</div>
   <div class="div-label">Make it yours.</div>
   <div class="div-text">Settings…, from the menu or by opening Tiler again. Every change is saved and applied at once.</div>
   <div class="dashline"></div>
-  <div class="footer"><div class="left"><img class="logo-foot" src="{{LOGO_KNOCKOUT}}" alt="BikS2013"><span>Section 03</span></div><span class="num">13</span></div>
+  <div class="footer"><div class="left"><img class="logo-foot" src="{{LOGO_KNOCKOUT}}" alt="BikS2013"><span>Section 03</span></div><span class="num">14</span></div>
 </section>
 
-<!-- 14 · SETTINGS GENERAL + LAYOUT -->
+<!-- 15 · SETTINGS GENERAL + LAYOUT -->
 <section class="slide paper" data-name="settings-general-layout">
-  <div class="eyebrow">10 · Settings</div>
-  <div class="title">General and Layout: <em>startup, permission, gaps.</em></div>
+  <div class="eyebrow">11 · Settings</div>
+  <div class="title">General and Layout: <em>startup, focus, gaps.</em></div>
   <div class="rule"></div>
-  <img class="shot" src="{{SHOT_GENERAL}}" alt="Settings, General pane" style="top:320px;left:70px;width:560px;height:584px">
+  <img class="shot" src="{{SHOT_GENERAL}}" alt="Settings, General pane" style="top:315px;left:70px;width:560px;height:620px">
   <div class="caption" style="top:350px;left:650px;width:270px">
     <h4>General</h4>
-    <ul><li>Launch Tiler at login</li><li>Accessibility status</li><li>How many desktops are tiled</li><li>Config file: Show in Finder, Reload, Restore Defaults</li></ul>
+    <ul><li>Launch Tiler at login</li><li>Focus follows mouse and its delay</li><li>Accessibility status</li><li>How many desktops are tiled</li><li>Config file: Show in Finder, Reload, Restore Defaults</li></ul>
   </div>
   <img class="shot" src="{{SHOT_LAYOUT}}" alt="Settings, Layout pane" style="top:340px;left:980px;width:560px;height:424px">
   <div class="caption" style="top:350px;left:1560px;width:290px">
@@ -380,12 +402,12 @@
     <ul><li>Gap between windows</li><li>Gap at the screen edges</li><li>Resize step per key press</li></ul>
     <p style="margin:14px 0 0;font-size:18px;color:var(--grey2)">Applied to every tiled desktop when you let go of the slider.</p>
   </div>
-  <div class="footer"><div class="left"><img class="logo-foot" src="{{LOGO_SMALL}}" alt="BikS2013"><span>Tiler · user guide</span></div><span class="num">14</span></div>
+  <div class="footer"><div class="left"><img class="logo-foot" src="{{LOGO_SMALL}}" alt="BikS2013"><span>Tiler · user guide</span></div><span class="num">15</span></div>
 </section>
 
-<!-- 15 · SETTINGS SHORTCUTS + APPS -->
+<!-- 16 · SETTINGS SHORTCUTS + APPS -->
 <section class="slide paper" data-name="settings-shortcuts-apps">
-  <div class="eyebrow">11 · Settings</div>
+  <div class="eyebrow">12 · Settings</div>
   <div class="title">Shortcuts and Apps: <em>your keys, your exceptions.</em></div>
   <div class="rule"></div>
   <img class="shot" src="{{SHOT_SHORTCUTS}}" alt="Settings, Shortcuts pane" style="top:315px;left:70px;width:490px;height:592px">
@@ -398,18 +420,18 @@
     <h4>Apps</h4>
     <ul><li>Apps whose windows always float</li><li><b>+</b> picks a running app or one from Finder</li><li><b>−</b> removes the selected app</li></ul>
   </div>
-  <div class="footer"><div class="left"><img class="logo-foot" src="{{LOGO_SMALL}}" alt="BikS2013"><span>Tiler · user guide</span></div><span class="num">15</span></div>
+  <div class="footer"><div class="left"><img class="logo-foot" src="{{LOGO_SMALL}}" alt="BikS2013"><span>Tiler · user guide</span></div><span class="num">16</span></div>
 </section>
 
-<!-- 16 · GOOD TO KNOW -->
+<!-- 17 · GOOD TO KNOW -->
 <section class="slide" data-name="good-to-know">
-  <div class="eyebrow">12 · Good to know</div>
+  <div class="eyebrow">13 · Good to know</div>
   <div class="title">The config file, a few limits, <em>and how to leave.</em></div>
   <div class="rule"></div>
   <div class="cols3">
     <div class="col"><div class="num-big">01</div><h3>One config file</h3>
       <p>Settings writes <code>~/Library/Application Support/Tiler/config.json</code>. Prefer a text editor? Edit it, then Settings › General › Reload.</p>
-      <p>Every key is required. A mistake is shown in the menu and in Settings, which stays read-only until it's fixed or you Restore Defaults.</p></div>
+      <p>Every key is required. A mistake is shown in the menu and in Settings. After an upgrade, <b>Add Missing Settings</b> fills in only the new keys.</p></div>
     <div class="col"><div class="num-big">02</div><h3>Known limits</h3>
       <p>Apps with a minimum size (Outlook needs 770 pt) can overlap their neighbour on a small screen.</p>
       <p>If another tool owns a key (Rectangle, Hammerspoon), it wins: pick another key in Settings. Don't tile the same desktop with HyprMac.</p></div>
@@ -417,10 +439,10 @@
       <p><code>brew uninstall --cask tiler</code> removes the app and keeps your settings.</p>
       <p><code>brew uninstall --zap --cask tiler</code> also removes the config and the list of tiled desktops.</p></div>
   </div>
-  <div class="footer"><div class="left"><img class="logo-foot" src="{{LOGO_SMALL}}" alt="BikS2013"><span>Tiler · user guide</span></div><span class="num">16</span></div>
+  <div class="footer"><div class="left"><img class="logo-foot" src="{{LOGO_SMALL}}" alt="BikS2013"><span>Tiler · user guide</span></div><span class="num">17</span></div>
 </section>
 
-<!-- 17 · BACK COVER -->
+<!-- 18 · BACK COVER -->
 <section class="slide dark" data-name="back-cover">
   <div style="position:absolute;top:0;right:0;width:380px;height:380px;background:var(--copper)"></div>
   <div style="position:absolute;top:140px;left:90px;font:600 16px var(--mono);letter-spacing:3px;text-transform:uppercase;color:var(--copper-l)">Try it today</div>
@@ -435,7 +457,7 @@
   </div>
   <div style="position:absolute;left:90px;right:90px;bottom:80px;display:flex;align-items:flex-end;justify-content:space-between">
     <img class="logo-hero" src="{{LOGO_KNOCKOUT}}" alt="BikS2013">
-    <div style="font-size:16px;letter-spacing:0.4px;color:rgba(246,243,236,0.7);text-align:right;line-height:1.5"><div>Tiler 0.3 · macOS 14+</div><div>Open source, MIT license · Swift, no dependencies</div></div>
+    <div style="font-size:16px;letter-spacing:0.4px;color:rgba(246,243,236,0.7);text-align:right;line-height:1.5"><div>Tiler 0.4 · macOS 14+</div><div>Open source, MIT license · Swift, no dependencies</div></div>
   </div>
 </section>
 
