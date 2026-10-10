@@ -17,11 +17,18 @@ import TilerCore
 /// - A tiled window dragged this way behaves like one dragged by its title
 ///   bar: on release it swaps with the tile it was dropped on or snaps back.
 ///   The swallowed press never reaches the window server, so the system does
-///   not report the button as down; `isActive` tells the controller instead.
+///   not report the button as down; `isActive` tells the controller instead,
+///   and `onGrab`/`onDrop` hand it the window and the drop point directly, so
+///   the drop never waits for the app's own (possibly late) moved
+///   notifications.
 final class WindowDrag {
     /// True (main thread) from the moment a window is grabbed until its last
     /// move has been written.
     private(set) var isActive = false
+    /// Main thread: a window was grabbed (its id), and later dropped (its id
+    /// and the pointer at release).
+    var onGrab: ((CGWindowID) -> Void)?
+    var onDrop: ((CGWindowID, CGPoint) -> Void)?
 
     private let tapThread = RunLoopThread(name: "tiler.drag.tap")
     private let axThread = RunLoopThread(name: "tiler.drag.ax")
@@ -43,6 +50,7 @@ final class WindowDrag {
 
     // AX thread only.
     private var element: AXUIElement?
+    private var windowID: CGWindowID = 0
     private var origin: CGPoint = .zero
     private var last: CGPoint?
 
@@ -102,6 +110,9 @@ final class WindowDrag {
         switch type {
         case .tapDisabledByTimeout, .tapDisabledByUserInput:
             if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
+            // The release may have gone by while the tap was off: drop the
+            // window where the pointer is now rather than stay mid-drag.
+            if dragging, let p = CGEvent(source: nil)?.location { move(to: p, up: true) }
             return false
         case .leftMouseDown:
             // Tiler's own synthetic drags (the desktop mover) pass through.
@@ -116,19 +127,23 @@ final class WindowDrag {
             return true
         case .leftMouseDragged, .leftMouseUp:
             guard dragging else { return false }
-            let up = type == .leftMouseUp
-            if up { dragging = false }
-            lock.lock()
-            target = event.location
-            if up { released = true }
-            let schedule = !flushing && element != nil
-            if schedule { flushing = true }
-            lock.unlock()
-            if schedule { axThread.perform { [self] in flush() } }
+            move(to: event.location, up: type == .leftMouseUp)
             return true
         default:
             return false
         }
+    }
+
+    /// The pointer of the drag in progress is at `point` (released if `up`).
+    private func move(to point: CGPoint, up: Bool) {
+        if up { dragging = false }
+        lock.lock()
+        target = point
+        if up { released = true }
+        let schedule = !flushing && element != nil
+        if schedule { flushing = true }
+        lock.unlock()
+        if schedule { axThread.perform { [self] in flush() } }
     }
 
     // MARK: AX thread
@@ -144,10 +159,17 @@ final class WindowDrag {
         if pending { flushing = true }
         lock.unlock()
         guard let found else { return }
+        windowID = found.id
         DispatchQueue.main.async { [self] in
             isActive = true
-            focusWindow(pid: found.pid, wid: found.id)
+            onGrab?(found.id)
         }
+        // The swallowed click never brings the window forward the way a
+        // title-bar press does. Focus its app first, then raise it (an app in
+        // the background ignores the raise), as `AppHandle.focus` does, so it
+        // moves above the tiles it is dragged over.
+        focusWindow(pid: found.pid, wid: found.id)
+        AXUIElementPerformAction(found.element, kAXRaiseAction as CFString)
         if pending { flush() }
     }
 
@@ -167,7 +189,11 @@ final class WindowDrag {
             }
             if done {
                 lock.lock(); flushing = false; lock.unlock()
-                DispatchQueue.main.async { [self] in isActive = false }
+                let id = windowID
+                DispatchQueue.main.async { [self] in
+                    isActive = false
+                    onDrop?(id, t)
+                }
                 return
             }
         }
@@ -181,16 +207,7 @@ final class WindowDrag {
 
     /// The movable, standard, non-full-screen window at `point`, if any.
     private static func window(at point: CGPoint) -> (element: AXUIElement, id: CGWindowID, pid: pid_t, origin: CGPoint)? {
-        var hit: AXUIElement?
-        guard AXUIElementCopyElementAtPosition(systemWide, Float(point.x), Float(point.y), &hit) == .success,
-              let hit else { return nil }
-        var window = hit
-        if AppHandle.string(hit, kAXRoleAttribute) != kAXWindowRole {
-            var value: AnyObject?
-            guard AXUIElementCopyAttributeValue(hit, kAXWindowAttribute as CFString, &value) == .success,
-                  let value, CFGetTypeID(value) == AXUIElementGetTypeID() else { return nil }
-            window = value as! AXUIElement
-        }
+        guard let window = axWindow(at: point) ?? visibleWindow(at: point) else { return nil }
         var pid: pid_t = 0
         var settable = DarwinBoolean(false)
         guard AXUIElementGetPid(window, &pid) == .success, pid != ProcessInfo.processInfo.processIdentifier,
@@ -200,6 +217,42 @@ final class WindowDrag {
               let id = AppHandle.windowID(of: window), let frame = AppHandle.frame(of: window) else { return nil }
         AXUIElementSetMessagingTimeout(window, 0.5)
         return (window, id, pid, frame.origin)
+    }
+
+    /// The window of the accessibility element under `point`.
+    private static func axWindow(at point: CGPoint) -> AXUIElement? {
+        var hit: AXUIElement?
+        guard AXUIElementCopyElementAtPosition(systemWide, Float(point.x), Float(point.y), &hit) == .success,
+              let hit else { return nil }
+        if AppHandle.string(hit, kAXRoleAttribute) == kAXWindowRole { return hit }
+        var value: AnyObject?
+        guard AXUIElementCopyAttributeValue(hit, kAXWindowAttribute as CFString, &value) == .success,
+              let value, CFGetTypeID(value) == AXUIElementGetTypeID() else { return nil }
+        return (value as! AXUIElement)
+    }
+
+    /// The frontmost ordinary window the window server shows under `point`,
+    /// as its app's accessibility element. Covers apps whose accessibility
+    /// tree is built lazily (Electron, Chromium), where the first hit test
+    /// can come back without a window.
+    private static func visibleWindow(at point: CGPoint) -> AXUIElement? {
+        guard let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
+                as? [[String: Any]] else { return nil }
+        for info in list {
+            guard (info[kCGWindowLayer as String] as? Int) == 0,
+                  (info[kCGWindowAlpha as String] as? Double ?? 1) > 0,
+                  let bounds = info[kCGWindowBounds as String] as? NSDictionary,
+                  let rect = CGRect(dictionaryRepresentation: bounds), rect.contains(point) else { continue }
+            guard let pid = info[kCGWindowOwnerPID as String] as? pid_t,
+                  let id = info[kCGWindowNumber as String] as? CGWindowID else { return nil }
+            let app = AXUIElementCreateApplication(pid)
+            AXUIElementSetMessagingTimeout(app, 0.5)
+            var value: AnyObject?
+            guard AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &value) == .success,
+                  let windows = value as? [AXUIElement] else { return nil }
+            return windows.first { AppHandle.windowID(of: $0) == id }
+        }
+        return nil
     }
 }
 

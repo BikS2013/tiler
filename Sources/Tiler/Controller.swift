@@ -46,6 +46,9 @@ final class Controller {
     private var resolving: Set<CGWindowID> = []
     private var rechecked: Set<CGWindowID> = []
     private var focused: (pid: pid_t, id: CGWindowID?)?
+    /// Recently focused windows, newest first, tiled or not: a new window
+    /// splits the newest one already in its desktop's tree.
+    private var focusHistory: [CGWindowID] = []
     private var reconcileScheduled = false
     private var drag: (key: DesktopKey?, id: CGWindowID, timer: Timer)?
     private let myPID = ProcessInfo.processInfo.processIdentifier
@@ -75,6 +78,8 @@ final class Controller {
     func start() {
         started = true
         restoreDesktops()
+        windowDrag.onGrab = { [weak self] id in self?.windowDragGrabbed(id) }
+        windowDrag.onDrop = { [weak self] id, point in self?.windowDragDropped(id, at: point) }
         let ws = NSWorkspace.shared.notificationCenter
         ws.addObserver(forName: NSWorkspace.didLaunchApplicationNotification, object: nil, queue: .main) { [weak self] n in
             guard let self, !desktops.isEmpty, let app = n.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
@@ -402,6 +407,7 @@ final class Controller {
             }
         case .windowDestroyed(_, let id):
             facts[id] = nil
+            focusHistory.removeAll { $0 == id }
             rechecked.remove(id)
             for d in desktops.values where d.owns(id) {
                 d.tree.remove(id)
@@ -429,6 +435,10 @@ final class Controller {
             }
         case .focusChanged(let pid, let id):
             focusChanged(pid: pid, id: id)
+        case .subscribed(let pid):
+            if pid == NSWorkspace.shared.frontmostApplication?.processIdentifier,
+               let app = NSRunningApplication(processIdentifier: pid) { readFocus(of: app) }
+            scheduleReconcile()
         }
     }
 
@@ -443,6 +453,11 @@ final class Controller {
     private func focusChanged(pid: pid_t, id: CGWindowID?) {
         guard pid == NSWorkspace.shared.frontmostApplication?.processIdentifier else { return }
         focused = (pid, id)
+        if let id {
+            focusHistory.removeAll { $0 == id }
+            focusHistory.insert(id, at: 0)
+            if focusHistory.count > 32 { focusHistory.removeLast() }
+        }
         if let id, let d = desktops.values.first(where: { $0.tree.contains(id) }) { d.lastFocused = id }
         updateHotkeys()
     }
@@ -520,6 +535,8 @@ final class Controller {
             // through the destroyed / terminate events.
             restoreFloatingFrames(on: d, present: presentIDs)
 
+            // A new window splits the window that was active when it opened:
+            // the newest focused window, other than itself, already tiled here.
             // Back to front, so the frontmost new window is inserted last.
             for w in present.reversed() where !d.owns(w.id) && !isFloatingApp(w.pid) {
                 guard let f = facts[w.id] else {
@@ -527,8 +544,13 @@ final class Controller {
                     continue
                 }
                 guard f.tileable else { continue }
-                let target = d.lastFocused.flatMap { d.tree.contains($0) ? $0 : nil }
+                let target = focusHistory.first { $0 != w.id && d.tree.contains($0) }
+                    ?? d.lastFocused.flatMap { d.tree.contains($0) ? $0 : nil }
                 d.tree.insert(w.id, splitting: target)
+                // A new window usually has focus before it joins the tree, and
+                // that focus change was not recorded: record it now, so the
+                // next new window splits this one.
+                if w.id == focused?.id { d.lastFocused = w.id }
                 changed = true
             }
             if changed { layout(d) }
@@ -594,15 +616,28 @@ final class Controller {
         drag = (d?.key, id, timer)
     }
 
+    /// A modifier + drag picked up a window. Its moved notifications may come
+    /// late, or only after the drop, so the drag starts here rather than there.
+    private func windowDragGrabbed(_ id: CGWindowID) {
+        guard drag == nil else { return }
+        beginDrag(of: id, on: desktops.values.first { $0.tree.contains(id) })
+    }
+
+    /// A modifier + drag let go of a window at `point`: the drop is handled now.
+    private func windowDragDropped(_ id: CGWindowID, at point: CGPoint) {
+        guard drag?.id == id else { return }
+        endDrag(at: point)
+    }
+
     /// The user let go of a tiled window: a resized window moves its dividers,
     /// a window dropped onto another tile swaps with it, anything else snaps back.
-    private func endDrag() {
+    private func endDrag(at point: CGPoint? = nil) {
         guard let (key, id, timer) = drag else { return }
         timer.invalidate()
         drag = nil
         // A dragged untiled window may have been dropped onto a tiled desktop.
         guard let key else { scheduleReconcile(); return }
-        let mouse = CGEvent(source: nil)?.location ?? .zero
+        let mouse = point ?? CGEvent(source: nil)?.location ?? .zero
         guard let pid = facts[id]?.pid, let handle = apps[pid] else { return }
         handle.frame(of: id) { [weak self] frame in
             guard let self, let config, let d = desktops[key], d.tree.contains(id),

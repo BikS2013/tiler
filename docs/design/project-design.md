@@ -47,7 +47,10 @@ desktop's tree simply waits.
 
 - `AppHandle` (per app, own thread): app-level `kAXWindowCreated`, `kAXFocusedWindowChanged`;
   window-level `kAXUIElementDestroyed`, `kAXWindowMoved`, `kAXWindowResized`,
-  `kAXWindowMiniaturized`. Events hop to the main thread as small enums.
+  `kAXWindowMiniaturized`. Events hop to the main thread as small enums. A launching app may
+  refuse the subscription (retried each second, up to 5 times); once it is accepted, a
+  `subscribed` event re-reads the app's focus (if frontmost) and schedules a reconcile, so windows
+  opened before then are tiled at once instead of on the next unrelated event.
 - `NSWorkspace`: app launch/terminate/hide/unhide/activate, active Space change, active display
   change (undocumented `NSWorkspaceActiveDisplayDidChangeNotification`); screen parameter changes.
 - Every event schedules a coalesced **reconcile** (20 ms), never a full AX scan.
@@ -61,6 +64,11 @@ desktop's tree simply waits.
    `SLSCopySpacesForWindows` contains its Space (empty answer = trust on-screen).
 4. Re-check the Space did not change during the read.
 5. Remove vanished windows (closed, minimised, hidden, moved away) from the tree; insert new ones.
+   A new window splits the window that was active when it opened: the newest entry of the
+   controller's focus history (recently focused windows, tiled or not, newest first) that is not
+   the new window itself and is already in this desktop's tree; else the desktop's `lastFocused`.
+   The history matters because a new window usually takes focus before it joins the tree, so a
+   window opened from it must still find it.
    Unknown windows are resolved asynchronously on their app's thread (role `AXWindow`, subrole
    `AXStandardWindow`, not minimised/fullscreen, size settable, enabled fullscreen button), with
    one re-check 0.6 s later for windows that become standard after creation.
@@ -162,20 +170,29 @@ user drags anywhere inside it with those modifiers held, on any desktop. It is T
    ignores Tiler's own synthetic events (the desktop mover's drag), records the point under a
    lock and returns. A matching press and the drag/release that follow are swallowed (the app
    never sees the click); everything else passes untouched. A tap disabled by timeout is
-   re-enabled from the callback.
+   re-enabled from the callback, and a drag in progress is then released at the current pointer
+   (the real release may have gone by while the tap was off), so it can never stay stuck.
 2. **Window.** On a second thread ("tiler.drag.ax"), `AXUIElementCopyElementAtPosition` on the
-   system-wide element (0.5 s timeout) → its `AXWindow`; accepted only if it is a standard,
-   non-full-screen window of another app with a settable position. It is focused
-   (`focusWindow`).
+   system-wide element (0.5 s timeout) → its `AXWindow`, or, when that finds none (apps such as
+   Electron and Chromium build their accessibility tree lazily, so the first hit test can come
+   back without a window), the frontmost layer-0 window the window server lists under the point,
+   matched by id among its app's `AXWindows`; accepted only if it is a standard,
+   non-full-screen window of another app with a settable position. The swallowed click never
+   brings it forward, so its app is focused (`focusWindow`) and then the window is raised
+   (`AXRaise`; an app in the background ignores the raise, hence this order, as in
+   `AppHandle.focus`), so it moves above the tiles it is dragged over.
 3. **Moves.** Each drag event stores the newest pointer position; the AX thread writes
    `origin + (pointer − press)` as the window position and loops until nothing newer is pending,
    so writes are coalesced to the app's speed. A release that comes before the window is found
    still gets its final position.
 4. **Tiling.** The swallowed press never reaches the window server, so `NSEvent.pressedMouseButtons`
    stays 0 during such a drag. `WindowDrag.isActive` (main thread; true from grab until the last
-   write) is ORed into the controller's `userDragging`, so a tiled window's moves start the usual
-   drag handling and the release swaps it with the tile under the pointer or snaps it back; a
-   floating window's frame is captured as for any drag.
+   write) is ORed into the controller's `userDragging`. The drag handling does not wait for the
+   app's moved notifications, which can arrive late or only after the release (a fast drag, a
+   busy app): `onGrab` (window id) starts the controller's drag as soon as the window is found,
+   and `onDrop` (window id, release point), sent after the last write, ends it at once, so the
+   release swaps a tiled window with the tile under the pointer or snaps it back. A floating
+   window's frame is captured as for any drag.
 
 Measured: 0 CPU at rest (no callback runs without a click). Checked live: an untiled move by
 exactly the drag distance with no text selected in TextEdit; plain drags and other modifier sets

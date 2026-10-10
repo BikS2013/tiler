@@ -8,6 +8,9 @@ enum AppEvent {
     case windowResized(pid_t, CGWindowID)
     case windowMinimized(pid_t, CGWindowID)
     case focusChanged(pid_t, CGWindowID?)
+    /// The app accepted the window notifications (a launching app may only
+    /// after a few tries): windows it opened before then went unannounced.
+    case subscribed(pid_t)
 }
 
 /// What Tiler needs to know about a window before it can tile it.
@@ -113,7 +116,11 @@ final class AppHandle {
             let err = AXObserverAddNotification(observer, app, name as CFString, nil)
             if err != .success && err != .notificationAlreadyRegistered { ok = false }
         }
-        guard !ok, attempt < 5 else { return }
+        if ok {
+            DispatchQueue.main.async { [onEvent, pid] in onEvent(.subscribed(pid)) }
+            return
+        }
+        guard attempt < 5 else { return }
         DispatchQueue.global().asyncAfter(deadline: .now() + 1) { [weak self] in
             self?.thread.perform { self?.subscribeApp(attempt: attempt + 1) }
         }

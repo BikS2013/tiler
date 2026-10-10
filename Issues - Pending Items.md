@@ -38,6 +38,44 @@
 
 ## Completed
 
+- **2026-10-10 — A new window split some other window, not the active one (0.8.1).** Reported:
+  a new window should halve the window active at that moment. Causes: (1) new windows split
+  the desktop's `lastFocused`, which only records focus on windows already in the tree; a new
+  window takes focus before it joins, so a window opened from it split the previous one;
+  (2) a just-launched app refuses the window notifications for a moment (retried each second),
+  and windows it opened meanwhile waited for an unrelated event before tiling, by which time
+  focus had moved on. Fix: a focus history (newest first, tiled or not, pruned on close); a new
+  window splits the newest focused window, other than itself, already in the tree. A
+  `subscribed` app event schedules a reconcile (and re-reads focus) once the app accepts the
+  notifications. Checked live: with Chrome focused, TextEdit launched with its windows tiled
+  within 1.5 s, splitting Chrome; the next new document split the focused TextEdit window.
+
+- **2026-10-10 — A window moved with ⌥⌘ + drag stayed behind the tiles (0.8.1).** Reported: the
+  dragged window should be on top, not hidden behind the windows tiled on the desktop. Cause:
+  the swallowed press never brings the window forward (a title-bar press does), and
+  `WindowDrag` raised the window (`AXRaise`) before focusing its app; an app in the background
+  ignores the raise, and focusing an app that is already active does not reorder its windows.
+  Fix: focus first, then raise (the order `AppHandle.focus` uses), on the drag's AX thread at
+  grab. Checked live: cmux (the active app, under Chrome) and Dorian (at the back) each came to
+  the front within the first drag events. Same release: when the accessibility hit test finds
+  no window (apps such as Electron build their tree lazily, so a first press could pick up
+  nothing), `WindowDrag` falls back to the frontmost layer-0 window the window server lists
+  under the pointer.
+
+- **2026-10-10 — ⌥⌘ + drag did not swap tiled windows (0.8.1).** Reported: dropping a tiled
+  window onto another tile swapped it when dragged by the title bar, but not when dragged with
+  ⌥⌘ from anywhere in it. Most likely cause (synthetic drags on 0.8.0 swapped almost every
+  time, so not reproduced exactly): the controller started and ended drag handling only from the
+  app's window-moved notifications. With the press swallowed by `WindowDrag`, the drag ends the
+  moment the button is released (`isActive` false), and an app that reports its moves late
+  (or only after the release) left Tiler with no drag to end, so no swap and no snap back.
+  Fix: `WindowDrag.onGrab`/`onDrop` hand the controller the window and the release point
+  directly; `endDrag(at:)` uses that point. Also: a tap disabled by timeout now releases a drag
+  in progress at the current pointer, so a lost release cannot leave `isActive` stuck (which
+  would block focus follows mouse and later drops). Checked live with ⌥⌘ drags at several
+  speeds, down to a 2-event flick, on two- and three-window layouts: every drop on another tile
+  swapped and a short drag snapped back.
+
 - **2026-10-10 — ⌥⌘M unminimizes the frontmost app's windows (0.8.0).** Action `unminimizeAll`
   (General group, every desktop), replacing the Hammerspoon `⌘⌥M` (removed from `init.lua` and
   the hotkeys cheatsheet; backup kept outside the repo). Checked live on tiled Desktop 1: two
