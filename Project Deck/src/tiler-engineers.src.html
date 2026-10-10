@@ -108,12 +108,12 @@ table.t td:first-child{font-weight:600;color:var(--ink)}
     <rect x="100" y="0" width="88" height="88" rx="10" fill="#F6F3EC" opacity=".82"/>
     <rect x="100" y="100" width="88" height="88" rx="10" fill="#F6F3EC" opacity=".82"/>
   </svg>
-  <div class="eyebrow" style="top:140px">Engineering deep-dive · Tiler v0.2.0</div>
+  <div class="eyebrow" style="top:140px">Engineering deep-dive · Tiler v0.3.0</div>
   <div style="position:absolute;top:250px;left:90px;right:480px;font-size:124px;line-height:.96;font-weight:300;letter-spacing:-2px;color:var(--paper)">
     Tiler<br><span style="color:var(--copper-l);font-style:italic;font-weight:400">one desktop at a time.</span>
   </div>
   <div style="position:absolute;top:560px;left:90px;width:1050px;font-size:30px;line-height:1.4;color:rgba(246,243,236,.8)">
-    How a 2,900-line Swift menu bar app tiles macOS windows with Accessibility, SkyLight and Carbon — and touches nothing it was not asked to.
+    How a 3,300-line Swift menu bar app tiles macOS windows with Accessibility, SkyLight and Carbon — and touches nothing it was not asked to.
   </div>
   <div style="position:absolute;left:90px;right:90px;bottom:80px;display:flex;align-items:flex-end;justify-content:space-between">
     <span class="lg lg-knockout lg-hero" role="img" aria-label="BikS2013"></span>
@@ -134,7 +134,7 @@ table.t td:first-child{font-weight:600;color:var(--ink)}
       <div class="step"><div class="n">01</div><div class="tx"><b>Why and what.</b> The scope, the audience, and what was left out of HyprMac.</div></div>
       <div class="step"><div class="n">02</div><div class="tx"><b>Architecture.</b> Components, threads, and how a desktop is identified.</div></div>
       <div class="step"><div class="n">03</div><div class="tx"><b>Events and layout.</b> Reconcile, frame writes, drags, the BSP tree.</div></div>
-      <div class="step"><div class="n">04</div><div class="tx"><b>Input, focus and UI.</b> macOS 14 focus, Carbon hotkeys, config, Settings.</div></div>
+      <div class="step"><div class="n">04</div><div class="tx"><b>Input, focus and UI.</b> macOS 14 focus, Carbon hotkeys, move/resize mode, config, Settings.</div></div>
       <div class="step"><div class="n">05</div><div class="tx"><b>Quality and shipping.</b> Performance, tests, bugs, limits, release pipeline.</div></div>
     </div>
     <div class="card" style="align-self:start">
@@ -167,7 +167,7 @@ table.t td:first-child{font-weight:600;color:var(--ink)}
     <div class="card">
       <h3>The hard rules</h3>
       <ul class="clean" style="margin-top:18px">
-        <li>Never touch a window outside a tiled desktop's display <b>and</b> Space.</li>
+        <li>Never touch a window outside a tiled desktop's display <b>and</b> Space — except the focused, untiled window when the user asks for the move/resize mode.</li>
         <li>No polling, no <code>CGEventTap</code>: react to AX and NSWorkspace events.</li>
         <li>Every AX call for an app runs on that app's own thread.</li>
         <li>Act on moved/resized notifications only while the mouse is down.</li>
@@ -192,7 +192,7 @@ table.t td:first-child{font-weight:600;color:var(--ink)}
     <div class="card">
       <div class="num">02</div>
       <h3 style="margin-top:22px">Engineers</h3>
-      <p>People who want to read, audit or extend a window manager. 2,900 lines, no dependencies, one design document, 22 unit tests.</p>
+      <p>People who want to read, audit or extend a window manager. 3,300 lines, no dependencies, one design document, 27 unit tests.</p>
     </div>
     <div class="card">
       <div class="num">03</div>
@@ -228,14 +228,14 @@ table.t td:first-child{font-weight:600;color:var(--ink)}
   <div class="rule"></div>
   <div class="body" style="display:grid;grid-template-columns:1.25fr 1fr;gap:90px;align-items:start">
     <div>
-      <div style="font-size:240px;font-weight:200;letter-spacing:-10px;line-height:.9"><span class="cop">2,900</span></div>
-      <div style="margin-top:30px;font-size:28px;line-height:1.35;max-width:760px">lines of Swift, Settings and the shortcuts overlay included — against about <b>35,000</b> in HyprMac.</div>
+      <div style="font-size:240px;font-weight:200;letter-spacing:-10px;line-height:.9"><span class="cop">3,300</span></div>
+      <div style="margin-top:30px;font-size:28px;line-height:1.35;max-width:760px">lines of Swift, Settings, the shortcuts overlay and the move/resize mode included — against about <b>35,000</b> in HyprMac.</div>
     </div>
     <div style="padding-top:20px">
       <div class="kv"><span class="k">Third-party dependencies</span><span class="v">0</span></div>
       <div class="kv"><span class="k">CPU while idle</span><span class="v">0 %</span></div>
       <div class="kv"><span class="k">One reconcile pass</span><span class="v">≈1 ms</span></div>
-      <div class="kv"><span class="k">Unit tests (XCTest)</span><span class="v">22</span></div>
+      <div class="kv"><span class="k">Unit tests (XCTest)</span><span class="v">27</span></div>
       <div class="kv"><span class="k">Private symbols used</span><span class="v">9</span></div>
     </div>
   </div>
@@ -324,7 +324,7 @@ table.t td:first-child{font-weight:600;color:var(--ink)}
       <text x="1430" y="336">Config</text><text x="1430" y="360" font-size="16" fill="#6E7379">strict parse, json()</text>
       <text x="1430" y="416">KeyCombo · Action</text><text x="1430" y="440" font-size="16" fill="#6E7379">symbols, titles, groups</text>
     </g>
-    <text x="1430" y="580" font-size="16" fill="#C8623A" font-family="ui-monospace, SF Mono, Menlo, monospace">22 XCTest tests</text>
+    <text x="1430" y="580" font-size="16" fill="#C8623A" font-family="ui-monospace, SF Mono, Menlo, monospace">27 XCTest tests</text>
   </svg>
   <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">08</span></div>
 </section>
@@ -692,9 +692,9 @@ table.t td:first-child{font-weight:600;color:var(--ink)}
     </table>
     <div>
       <ul class="clean">
-        <li><b>Per focus.</b> <code>toggleDesktop</code> and <code>showHotkeys</code> are always registered; the tiling keys only while the active display shows a tiled desktop. Elsewhere apps keep those keys.</li>
+        <li><b>Per focus.</b> <code>toggleDesktop</code>, <code>showHotkeys</code> and <code>moveResize</code> are always registered; the tiling keys only while the active display shows a tiled desktop. Elsewhere apps keep those keys.</li>
         <li><b>Suspended while recording.</b> Settings sets <code>hotkeysSuspended</code>, so a new combination reaches the recorder.</li>
-        <li><b>Esc borrowed.</b> While the overlay is up, Esc is a hotkey (id <code>0xE5C</code>), released when it closes.</li>
+        <li><b>Keys borrowed.</b> <code>borrow</code> / <code>release</code>: Esc while the overlay is up; arrows, C, M, Return and Esc while the move/resize mode is on (ids from <code>0x1000</code>, pressed and released events), given back when it ends.</li>
         <li><b>Signature</b> <code>"TLRR"</code>; the id indexes <code>Action.allCases</code>.</li>
       </ul>
     </div>
@@ -702,7 +702,37 @@ table.t td:first-child{font-weight:600;color:var(--ink)}
   <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">20</span></div>
 </section>
 
-<!-- 21 CONFIG -->
+<!-- 21 MOVE RESIZE -->
+<section class="slide" data-name="move-resize">
+  <div class="eyebrow">04 · Move/resize mode</div>
+  <div class="title">Keyboard moves for untiled windows, borrowed keys.</div>
+  <div class="rule"></div>
+  <div class="body" style="display:grid;grid-template-columns:1fr 1fr;gap:60px">
+    <div>
+      <ul class="clean">
+        <li><b>Scope.</b> ⌃⌘M acts on the focused window only, and only when no tiled desktop holds it (<code>isTiled</code>). A tiled window gets a note instead.</li>
+        <li><b>Keys exist only in the mode.</b> Arrows, ⇧/⌥ arrows, C, M, Return, Esc are borrowed Carbon hotkeys; pressed/released events drive a repeat timer (0.3 s, then 45 ms). App switch, Space change or a click ends it.</li>
+        <li><b>Own AX thread.</b> <code>WindowMover</code> reads the focused window and writes frames on a <code>RunLoopThread</code>; only the newest frame is written (size → position → size), then the frame the app accepted is read back.</li>
+        <li><b>Pure arithmetic.</b> <code>WindowNudge</code> in TilerCore: 40 pt or 8 pt steps, top-left anchored resize, min 160×100, clamped to the usable area minus the outer gap.</li>
+      </ul>
+    </div>
+<pre class="code" style="align-self:start"><span class="c">// WindowNudge.swift — unit-tested</span>
+<span class="k">public enum</span> Operation {
+    <span class="k">case</span> move(Direction)    <span class="c">// arrows</span>
+    <span class="k">case</span> resize(Direction)  <span class="c">// ⇧ arrows</span>
+    <span class="k">case</span> center             <span class="c">// C</span>
+    <span class="k">case</span> maximize           <span class="c">// M</span>
+}
+
+<span class="k">static func</span> apply(_ op: Operation,
+                  to frame: CGRect,
+                  in area: CGRect,
+                  step: CGFloat) -> CGRect</pre>
+  </div>
+  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">21</span></div>
+</section>
+
+<!-- 22 CONFIG -->
 <section class="slide" data-name="config">
   <div class="eyebrow">04 · Configuration</div>
   <div class="title">One file, strictly parsed, written back by Settings.</div>
@@ -714,6 +744,7 @@ table.t td:first-child{font-weight:600;color:var(--ink)}
         <li><b>Every key required.</b> Missing, unknown, out-of-range or duplicate keys are errors, never defaults. The last good config stays in force; the menu and Settings show the error.</li>
         <li><code>Config.json()</code> writes every key in a fixed order, so the file stays readable and diffable.</li>
         <li>While the file has an error, Settings is read-only: it never overwrites a file being fixed by hand.</li>
+        <li><b>Upgrades.</b> A new action is a missing key, so an error. Settings offers <b>Add Missing Shortcuts</b>: <code>Config.addingMissingHotkeys</code> adds only those keys from the template, by explicit click.</li>
       </ul>
     </div>
     <svg width="800" height="520" viewBox="0 0 800 520" font-family="Avenir Next, Inter, Helvetica Neue, Arial, sans-serif" aria-label="Settings save path">
@@ -731,10 +762,10 @@ table.t td:first-child{font-weight:600;color:var(--ink)}
       <text x="400" y="512" text-anchor="middle" font-size="16" fill="#6E7379">Controller.save — the file stays the single source of truth</text>
     </svg>
   </div>
-  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">21</span></div>
+  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">22</span></div>
 </section>
 
-<!-- 22 UI -->
+<!-- 23 UI -->
 <section class="slide paper" data-name="ui">
   <div class="eyebrow">04 · Native UI</div>
   <div class="title">AppKit where macOS expects it, SwiftUI inside.</div>
@@ -753,10 +784,10 @@ table.t td:first-child{font-weight:600;color:var(--ink)}
       <img class="shot" src="{{SHOT_OVERLAY}}" alt="Tiler keyboard shortcuts overlay" style="position:absolute;right:0;top:90px;width:600px">
     </div>
   </div>
-  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">22</span></div>
+  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">23</span></div>
 </section>
 
-<!-- 23 PRIVATE API -->
+<!-- 24 PRIVATE API -->
 <section class="slide" data-name="private-api">
   <div class="eyebrow">04 · Private APIs</div>
   <div class="title">Nine private symbols, none of them for moving windows.</div>
@@ -779,19 +810,19 @@ table.t td:first-child{font-weight:600;color:var(--ink)}
       </ul>
     </div>
   </div>
-  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">23</span></div>
+  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">24</span></div>
 </section>
 
-<!-- 24 DIVIDER QUALITY -->
+<!-- 25 DIVIDER QUALITY -->
 <section class="slide dark" data-name="divider-quality">
   <div class="dv-bar"></div>
   <div class="dv-num">05</div>
   <div class="dv-label">Quality and shipping.</div>
   <div class="dv-sub">What it costs at runtime, how it was tested, what broke along the way, what is still open — and how a release reaches Homebrew.</div>
-  <div class="ftr"><div class="l"><span class="lg lg-knockout lg-ftr" role="img" aria-label="BikS2013"></span><span>Section 05</span></div><span class="pg">24</span></div>
+  <div class="ftr"><div class="l"><span class="lg lg-knockout lg-ftr" role="img" aria-label="BikS2013"></span><span>Section 05</span></div><span class="pg">25</span></div>
 </section>
 
-<!-- 25 PERFORMANCE -->
+<!-- 26 PERFORMANCE -->
 <section class="slide paper" data-name="performance">
   <div class="eyebrow">05 · Runtime cost</div>
   <div class="title">Idle means idle.</div>
@@ -809,20 +840,21 @@ table.t td:first-child{font-weight:600;color:var(--ink)}
       <div class="kv"><span class="k">Worst AX call</span><span class="v">1 s cap</span></div>
     </div>
   </div>
-  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">25</span></div>
+  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">26</span></div>
 </section>
 
-<!-- 26 TESTING -->
+<!-- 27 TESTING -->
 <section class="slide" data-name="testing">
   <div class="eyebrow">05 · Testing</div>
   <div class="title">Unit tests for the logic, live checks for the rest.</div>
   <div class="rule"></div>
   <div class="body grid g2" style="gap:60px">
     <div class="card">
-      <h3>22 XCTest tests on TilerCore</h3>
+      <h3>27 XCTest tests on TilerCore</h3>
       <table class="t" style="margin-top:12px">
         <tr><td style="width:40%">BSPTree · 11</td><td>dwindle split, gaps, remove, swap, divider moves, clamp, mirror, equalize, adoptResize</td></tr>
-        <tr><td>Config · 9</td><td>template parses, missing / unknown / duplicate keys, “none”, json() round trip, key events, conflicts</td></tr>
+        <tr><td>Config · 11</td><td>template parses, missing / unknown / duplicate keys, “none”, json() round trip, key events, conflicts, adding missing shortcuts</td></tr>
+        <tr><td>WindowNudge · 3</td><td>move stays inside, resize anchors top-left and clamps, centre and fill</td></tr>
         <tr><td style="border:0">Geometry · 2</td><td style="border:0">neighbour ranking, hit testing</td></tr>
       </table>
     </div>
@@ -834,13 +866,14 @@ table.t td:first-child{font-weight:600;color:var(--ink)}
         <li>focus left/right; drag-to-swap; gap reload</li>
         <li>hotkeys released on untiled desktops; other display never touched</li>
         <li>overlay Esc and toggle with Finder in front; Settings recorder and conflict check</li>
+        <li>move/resize: tiled window refused; arrows, ⇧, ⌥, hold-repeat, fill; keys released on exit; Add Missing Shortcuts</li>
       </ul>
     </div>
   </div>
-  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">26</span></div>
+  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">27</span></div>
 </section>
 
-<!-- 27 BUGS -->
+<!-- 28 BUGS -->
 <section class="slide paper" data-name="bugs">
   <div class="eyebrow">05 · Found and fixed</div>
   <div class="title">What live testing caught.</div>
@@ -855,10 +888,10 @@ table.t td:first-child{font-weight:600;color:var(--ink)}
       <tr><td>Default keys moved windows away</td><td>Rectangle and Hammerspoon own <code>⌃⌥</code> and Hyper combos</td><td>Defaults moved to the <code>⌃⌘</code> family</td></tr>
     </table>
   </div>
-  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">27</span></div>
+  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">28</span></div>
 </section>
 
-<!-- 28 LIMITS -->
+<!-- 29 LIMITS -->
 <section class="slide" data-name="limits">
   <div class="eyebrow">05 · Known limits</div>
   <div class="title">Still open.</div>
@@ -871,10 +904,10 @@ table.t td:first-child{font-weight:600;color:var(--ink)}
     <div class="card"><h3>Tahoe corners</h3><p>Large, varying window corner radii on macOS 26+ make equal gaps look uneven. Cosmetic.</p></div>
     <div class="card"><h3>Shared Spaces</h3><p>“Displays have separate Spaces” off is handled (the “Main” Space) but not checked live.</p></div>
   </div>
-  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">28</span></div>
+  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">29</span></div>
 </section>
 
-<!-- 29 RELEASE -->
+<!-- 30 RELEASE -->
 <section class="slide paper" data-name="release">
   <div class="eyebrow">05 · Build and release</div>
   <div class="title">From <span class="mono" style="font-size:.84em;font-weight:400;color:var(--copper)">swift test</span> to <span class="mono" style="font-size:.84em;font-weight:400;color:var(--copper)">brew install</span>.</div>
@@ -883,7 +916,7 @@ table.t td:first-child{font-weight:600;color:var(--ink)}
     <defs><marker id="ar6" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#6E7379"/></marker></defs>
     <g font-size="19" fill="#1B1D21" text-anchor="middle">
       <rect x="0" y="0" width="260" height="120" rx="12" fill="#FFFFFF" stroke="#C9CCD1"/>
-      <text x="130" y="48" font-weight="600">swift test</text><text x="130" y="80" font-size="16" fill="#6E7379">22 tests must pass</text>
+      <text x="130" y="48" font-weight="600">swift test</text><text x="130" y="80" font-size="16" fill="#6E7379">27 tests must pass</text>
       <rect x="296" y="0" width="260" height="120" rx="12" fill="#FFFFFF" stroke="#C9CCD1"/>
       <text x="426" y="48" font-weight="600">universal build</text><text x="426" y="80" font-size="16" fill="#6E7379">arm64 + x86_64, release</text>
       <rect x="592" y="0" width="260" height="120" rx="12" fill="#FFFFFF" stroke="#C9CCD1"/>
@@ -906,10 +939,10 @@ table.t td:first-child{font-weight:600;color:var(--ink)}
     <text x="0" y="284" font-size="18" fill="#6E7379" font-family="ui-monospace, SF Mono, Menlo, monospace">TILER_SIGN_IDENTITY=… NOTARY_PROFILE=tiler-notary scripts/package.sh</text>
   </svg>
   <div style="position:absolute;left:90px;right:90px;top:720px" class="small">A stable Developer ID signature keeps the Accessibility grant valid across updates. Gatekeeper reports “Notarized Developer ID” for the app and the disk image. Steps and checks: <code>docs/design/release-runbook.md</code>.</div>
-  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">29</span></div>
+  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">30</span></div>
 </section>
 
-<!-- 30 GET IT -->
+<!-- 31 GET IT -->
 <section class="slide" data-name="get-it">
   <div class="eyebrow">05 · Get it, read it</div>
   <div class="title">Install it, then open the source.</div>
@@ -926,7 +959,7 @@ cd tiler &amp;&amp; swift test &amp;&amp; swift build
 
 <span class="c"># drive a running instance</span>
 scripts/tiler-ctl.sh toggle active
-scripts/tiler-ctl.sh retile | reload | dump</pre>
+scripts/tiler-ctl.sh retile | moveresize | dump</pre>
     </div>
     <div>
       <div class="kv"><span class="k">Source</span><span class="v" style="font-size:22px">github.com/BikS2013/tiler</span></div>
@@ -937,10 +970,10 @@ scripts/tiler-ctl.sh retile | reload | dump</pre>
       <p class="small" style="margin-top:22px">First launch asks for Accessibility. That is the only permission Tiler needs.</p>
     </div>
   </div>
-  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">30</span></div>
+  <div class="ftr"><div class="l"><span class="lg lg-small lg-ftr" role="img" aria-label="BikS2013"></span><span>Tiler · engineering</span></div><span class="pg">31</span></div>
 </section>
 
-<!-- 31 CLOSING -->
+<!-- 32 CLOSING -->
 <section class="slide dark" data-name="closing">
   <svg width="1920" height="1080" style="position:absolute;inset:0;opacity:.06" aria-hidden="true">
     <defs><pattern id="lines2" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M0 40 L40 0" stroke="#fff" stroke-width="0.5"/></pattern></defs>
@@ -956,7 +989,7 @@ scripts/tiler-ctl.sh retile | reload | dump</pre>
   <div style="position:absolute;left:90px;right:90px;bottom:80px;display:flex;align-items:flex-end;justify-content:space-between">
     <span class="lg lg-knockout lg-hero" role="img" aria-label="BikS2013"></span>
     <div style="font-size:18px;letter-spacing:.4px;color:rgba(246,243,236,.7);text-align:right;line-height:1.55">
-      <div>BikS2013 · Tiler v0.2.0</div>
+      <div>BikS2013 · Tiler v0.3.0 · MIT license</div>
       <div class="mono">brew install --cask tiler</div>
     </div>
   </div>

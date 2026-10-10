@@ -7,6 +7,7 @@ final class StatusMenu: NSObject, NSMenuDelegate {
     private let controller: Controller
     private let menu = NSMenu()
     var onShowShortcuts: (() -> Void)?
+    var onMoveResize: (() -> Void)?
     var onShowSettings: ((SettingsWindowController.Pane?) -> Void)?
 
     init(controller: Controller) {
@@ -63,6 +64,11 @@ final class StatusMenu: NSObject, NSMenuDelegate {
             line.isEnabled = false
         }
 
+        let move = add("Move or Resize Window", "arrow.up.and.down.and.arrow.left.and.right", #selector(moveResizeWindow))
+        move.show(hotkeys[.moveResize])
+        move.isEnabled = controller.started
+        move.toolTip = "Move or resize the focused window with the keyboard (not a tiled one)"
+
         menu.addItem(.separator())
         add("Keyboard Shortcuts", "keyboard", #selector(showShortcuts)).show(hotkeys[.showHotkeys])
         let settings = add("Settings…", "gearshape", #selector(openSettings))
@@ -92,6 +98,10 @@ final class StatusMenu: NSObject, NSMenuDelegate {
     @objc private func showShortcuts() {
         // Let the menu finish closing first, so the overlay can take the keyboard.
         DispatchQueue.main.async { self.onShowShortcuts?() }
+    }
+
+    @objc private func moveResizeWindow() {
+        DispatchQueue.main.async { self.onMoveResize?() }
     }
 
     @objc private func openSettings() { onShowSettings?(nil) }

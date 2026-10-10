@@ -6,7 +6,8 @@ individual macOS desktops: one (display, Space) pair at a time, chosen by the us
 ## Goals
 
 - Same core job as HyprMac (Hyprland-style tiling), restricted to the desktops the user turns on.
-- Never read, move or resize a window on another display or another desktop.
+- Never read, move or resize a window on another display or another desktop. The one exception
+  is explicit: the move/resize mode acts on the focused window the user asked it to.
 - Fast and light: no polling, no event tap, no work at all while nothing is tiled.
 - Few moving parts, so few bugs.
 
@@ -88,9 +89,10 @@ ignored. The *active display* is the display of the focused window, else the one
 
 ### Hotkeys
 
-Carbon `RegisterEventHotKey`. `toggleDesktop` and `showHotkeys` are always registered; the
-others only while the active display shows a tiled desktop, and are unregistered otherwise so
-apps keep those keys.
+Carbon `RegisterEventHotKey`. `toggleDesktop`, `showHotkeys` and `moveResize` are always
+registered; the others only while the active display shows a tiled desktop, and are unregistered
+otherwise so apps keep those keys. Transient UIs (overlay, move/resize mode) borrow plain keys
+with `Hotkeys.borrow` and give them back with `release()`.
 
 ### User interface
 
@@ -112,6 +114,28 @@ apps keep those keys.
 - **App bundle**: icon rendered by `scripts/make-icon.swift` (no image assets in the repo), a
   standard About panel, and a hidden main menu so ⌘W/⌘Q/⌘,/editing keys work in Settings.
 - Minimum macOS is 14 (section-header menu items, `NSApp.activate()`, SwiftUI `onChange` two-value form).
+
+### Move/resize mode (untiled windows)
+
+`MoveResizeMode` (menu or `⌃⌘M`) is the one place Tiler touches a window outside a tiled
+desktop, and only on an explicit request, only the focused window, only while the mode is on.
+
+- **Target**: the frontmost app's focused window, read on a dedicated `WindowMover` thread
+  (`kAXFocusedWindow`, position settable, not full screen). If a tiled desktop holds it
+  (`Controller.isTiled`), a HUD says to float it first and nothing changes.
+- **Keys**: `Hotkeys.borrow` registers the arrows (plain, ⇧, ⌥, ⇧⌥), C, M, Return, Enter and Esc
+  as Carbon hotkeys for the life of the mode and `release()` gives them back, so apps never lose
+  those keys otherwise. Pressed and released events are both delivered; a held key repeats from a
+  main-thread timer (0.3 s delay, 45 ms interval) because Carbon hotkeys do not auto-repeat. The
+  shortcuts overlay borrows Esc the same way.
+- **Arithmetic**: `WindowNudge` (TilerCore, pure, unit-tested) computes the next frame inside the
+  window's usable display area inset by `outerGap`: moves clamp to the area, resizes keep the
+  top-left corner with a 160×100 minimum and push back inside, C centres, M fills.
+- **Writes**: `WindowMover.setFrame` coalesces to the newest frame and writes size → position →
+  size on its thread, then reads back what the app accepted; the mode continues from that frame,
+  so an app's own size limits are respected.
+- **End**: Return / Enter / Esc / the shortcut again, an app activation, a Space change, or a
+  click (global mouse monitor). The thread stops with the mode.
 
 ### Startup
 
@@ -144,6 +168,9 @@ All are read-only or focus-related; Tiler never moves windows between Spaces (br
 | `Sources/Tiler/Hotkeys.swift` | Carbon hot keys |
 | `Sources/Tiler/StatusMenu.swift` | Menu bar item |
 | `Sources/Tiler/ShortcutsOverlay.swift` | Keyboard shortcuts HUD |
+| `Sources/Tiler/MoveResizeMode.swift` | Move/resize mode, `WindowMover` thread, its HUD |
+| `Sources/Tiler/HUDPanel.swift` | Shared non-activating HUD panel |
+| `Sources/TilerCore/WindowNudge.swift` | Move/resize arithmetic (pure, tested) |
 | `Sources/Tiler/Settings.swift` | Settings window, model and panes (incl. shortcut recorder) |
 | `Sources/Tiler/Appearance.swift` | Menu bar glyph, key caps view, menu key equivalents |
 | `Sources/Tiler/PrivateAPI.swift` | Private symbol declarations |

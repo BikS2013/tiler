@@ -21,6 +21,8 @@ only where you turn it on; every other display and desktop is left exactly as it
    Ctrl-Cmd-/            show every shortcut
    Ctrl-Cmd-arrows       focus the neighbouring window (add Shift to swap)
    Ctrl-Cmd-[ / ]        move the divider (add Shift for the horizontal one)
+   Ctrl-Cmd-M            move / resize the focused untiled window with the arrows
+                         (Shift resizes, Option = fine, C centre, M fill, Return done)
    Drag a tile onto another to swap them; drag an edge to resize.
    Everything can be changed in Settings (menu bar icon > Settings...).
 

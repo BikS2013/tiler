@@ -6,7 +6,7 @@ desktop (Space) is left exactly as it is.
 
 It does the core job of [HyprMac](https://github.com/BikS2013-forks/HyprMac): Hyprland-style BSP
 "dwindle" tiling with keyboard focus, swap and resize, and mouse drag-to-swap and drag-to-resize.
-It does this in about 2,900 lines (Settings and the shortcuts overlay included) instead of 35,000, with no polling, no event tap and no
+It does this in about 3,300 lines (Settings, the shortcuts overlay and the move/resize mode included) instead of 35,000, with no polling, no event tap and no
 virtual workspaces.
 
 ## Use it
@@ -40,6 +40,25 @@ float, and Launch at Login.
 | `⌃⌘E` | Make every split 50/50 |
 | `⌃⌘R` | Retile: re-read the desktop and rewrite every tile |
 | `⌃⌘/` | Show the keyboard shortcuts overlay (works everywhere) |
+| `⌃⌘M` | Move or resize the focused untiled window with the keyboard (works everywhere, see below) |
+
+### Moving and resizing untiled windows
+
+`⌃⌘M` (or menu → **Move or Resize Window**) starts a move/resize mode for the window you are in,
+as long as Tiler is not tiling it: a floating window on a tiled desktop, or any window on a desktop
+Tiler leaves alone. A small hint appears at the bottom of the screen.
+
+| Key | In the mode |
+|-----|-------------|
+| `← ↑ → ↓` | Move 40 pt (hold to keep moving) |
+| `⇧` + arrows | Resize: → and ↓ grow, ← and ↑ shrink (the top-left corner stays) |
+| `⌥` | With either of the above: fine 8 pt steps |
+| `C` | Centre on the screen |
+| `M` | Fill the screen (minus the outer gap) |
+| `↩` / `esc` / `⌃⌘M` | Done |
+
+The arrow keys belong to Tiler only while the mode is on; switching app or desktop, or clicking,
+also ends it. A tiled window is left alone (float it first with `⌃⌘T`).
 
 With the mouse: drag a tile onto another tile to swap them, drag a tile's edge to resize the
 split, and drop a window from elsewhere onto the desktop to tile it.
@@ -100,7 +119,7 @@ Full reference: [docs/design/configuration-guide.md](docs/design/configuration-g
 
 ```sh
 scripts/tiler-ctl.sh toggle active     # or a display UUID
-scripts/tiler-ctl.sh retile | reload | settings | shortcuts | dump
+scripts/tiler-ctl.sh retile | reload | settings | shortcuts | moveresize | dump
 log stream --predicate 'subsystem == "com.giorgosmarinos.tiler"' --level debug
 ```
 
@@ -115,3 +134,7 @@ Design: [docs/design/project-design.md](docs/design/project-design.md) ·
 Features: [docs/design/project-functions.md](docs/design/project-functions.md) ·
 Research behind the implementation choices: [docs/reference/macos-tiling-research.md](docs/reference/macos-tiling-research.md) ·
 Known issues: [Issues - Pending Items.md](Issues%20-%20Pending%20Items.md)
+
+## License
+
+[MIT](LICENSE) © 2026 Giorgos Marinos

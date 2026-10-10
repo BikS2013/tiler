@@ -56,9 +56,12 @@ desktops (display + Space) the user turns on. Design: `docs/design/project-desig
 
 ## Hard rules
 
-- Never touch windows outside a tiled desktop's display **and** Space.
+- Never touch windows outside a tiled desktop's display **and** Space. Sole exception: the
+  move/resize mode (`MoveResizeMode`), which acts only on the focused, untiled window the user
+  explicitly asked for, only while the mode is on.
 - No polling and no `CGEventTap`. React to AX/NSWorkspace events; hotkeys via Carbon.
-- All AX calls for an app run on that app's `AppHandle` thread, never on the main thread.
+- All AX calls for an app run on that app's `AppHandle` thread (or, for the move/resize mode,
+  the `WindowMover` thread), never on the main thread.
 - Act on window moved/resized notifications only while the mouse button is down.
 - Config keys are all required; never add silent defaults (see `Config.parse`). Settings writes
   the file through `Controller.save` (validate, write atomically, reload); it is never a second
@@ -75,4 +78,4 @@ desktops (display + Space) the user turns on. Design: `docs/design/project-desig
 - Release: `TILER_SIGN_IDENTITY=2C7D6068C232BA74073D56085DDBB04E5F14DF30 NOTARY_PROFILE=tiler-notary scripts/package.sh`,
   then `docs/design/release-runbook.md` (GitHub `BikS2013/tiler`, tap `BikS2013/homebrew-tiler`)
 - Decks: `Project Deck/` (nbg-design skill, BikS2013 theme), published with GitHub Pages
-- `scripts/tiler-ctl.sh toggle active | retile | reload | settings | shortcuts | dump`
+- `scripts/tiler-ctl.sh toggle active | retile | reload | settings | shortcuts | moveresize | dump`

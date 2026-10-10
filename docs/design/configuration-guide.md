@@ -32,11 +32,15 @@ action only. Unknown actions or keys are errors.
 
 Actions: `toggleDesktop`, `focusLeft/Right/Up/Down`, `swapLeft/Right/Up/Down`,
 `resizeLeft/Right/Up/Down`, `toggleFloat`, `toggleSplit`, `mirror`, `equalize`, `retile`,
-`showHotkeys` (template `ctrl+cmd+/`, opens the shortcuts overlay). `toggleDesktop` and
-`showHotkeys` work on every desktop; the rest only while a tiled desktop has focus.
+`showHotkeys` (template `ctrl+cmd+/`, opens the shortcuts overlay), `moveResize` (template
+`ctrl+cmd+m`, starts the move/resize mode for the focused untiled window). `toggleDesktop`,
+`showHotkeys` and `moveResize` work on every desktop; the rest only while a tiled desktop has
+focus. The keys used inside the move/resize mode (arrows, ⇧, ⌥, C, M, Return, Esc) are fixed.
 
-A config file from before `showHotkeys` existed is rejected ("missing required key
-'hotkeys.showHotkeys'"): add the key, or use Restore Defaults.
+**Upgrading.** A config file written by an older version lacks the newer actions and is rejected
+("missing required key 'hotkeys.moveResize'"); nothing is filled in silently. Settings → General
+then offers **Add Missing Shortcuts**, which adds the template binding for each missing action and
+changes nothing else (or add the keys by hand, or Restore Defaults).
 
 Settings ranges are narrower than the file allows for convenience (gaps 0–48 / 0–64 pt, resize
 step 1–25 %); a larger value set in the file is kept and shown.

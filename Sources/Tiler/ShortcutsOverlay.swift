@@ -8,7 +8,7 @@ import TilerCore
 /// click anywhere, a desktop switch, or the shortcut again.
 final class ShortcutsOverlay {
     private let controller: Controller
-    private var panel: OverlayPanel?
+    private var panel: HUDPanel?
     private var observers: [(NotificationCenter, NSObjectProtocol)] = []
     private var mouseMonitor: Any?
 
@@ -23,38 +23,12 @@ final class ShortcutsOverlay {
         guard let config = controller.config else { NSSound.beep(); return }
         let display = controller.activeDisplay()
         let tiled = display.flatMap { controller.visibleDesktop(onDisplay: $0) } != nil
-        let view = ShortcutsView(config: config, tiled: tiled)
-        let host = NSHostingView(rootView: view)
-        host.layoutSubtreeIfNeeded()
-        let size = host.fittingSize
-
-        let effect = NSVisualEffectView(frame: NSRect(origin: .zero, size: size))
-        effect.material = .hudWindow
-        effect.blendingMode = .behindWindow
-        effect.state = .active
-        effect.maskImage = Self.roundedMask(radius: 18)
-        host.frame = effect.bounds
-        host.autoresizingMask = [.width, .height]
-        effect.addSubview(host)
-
         let screen = NSScreen.with(displayUUID: display) ?? NSScreen.main ?? NSScreen.screens[0]
-        let v = screen.visibleFrame
-        let origin = NSPoint(x: (v.midX - size.width / 2).rounded(), y: (v.midY - size.height / 2).rounded())
-        let p = OverlayPanel(contentRect: NSRect(origin: origin, size: size),
-                             styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
-        p.contentView = effect
-        p.isOpaque = false
-        p.backgroundColor = .clear
-        p.hasShadow = true
-        p.level = .modalPanel
-        p.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient, .ignoresCycle]
-        p.isReleasedWhenClosed = false
+        let p = HUDPanel(content: ShortcutsView(config: config, tiled: tiled))
         p.onDismiss = { [weak self] in self?.close() }
-        p.alphaValue = 0
-        p.orderFrontRegardless()
-        controller.captureEscape { [weak self] in self?.close() }
-        NSAnimationContext.runAnimationGroup { $0.duration = 0.12; p.animator().alphaValue = 1 }
+        p.present(on: screen, at: .center)
         panel = p
+        controller.borrowKeys([(0x35, 0)]) { [weak self] _, pressed in if pressed { self?.close() } }
 
         let ws = NSWorkspace.shared.notificationCenter
         for name in [NSWorkspace.activeSpaceDidChangeNotification, NSWorkspace.didActivateApplicationNotification] {
@@ -66,35 +40,12 @@ final class ShortcutsOverlay {
     func close() {
         guard let p = panel else { return }
         panel = nil
-        controller.captureEscape(nil)
+        controller.releaseKeys()
         for (center, token) in observers { center.removeObserver(token) }
         observers.removeAll()
         if let m = mouseMonitor { NSEvent.removeMonitor(m) }
         mouseMonitor = nil
-        NSAnimationContext.runAnimationGroup({ $0.duration = 0.1; p.animator().alphaValue = 0 },
-                                             completionHandler: { p.orderOut(nil) })
-    }
-
-    private static func roundedMask(radius: CGFloat) -> NSImage {
-        let edge = radius * 2 + 1
-        let image = NSImage(size: NSSize(width: edge, height: edge), flipped: false) { rect in
-            NSColor.black.set()
-            NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius).fill()
-            return true
-        }
-        image.capInsets = NSEdgeInsets(top: radius, left: radius, bottom: radius, right: radius)
-        image.resizingMode = .stretch
-        return image
-    }
-}
-
-/// A borderless panel that never takes focus; a click on it closes it.
-private final class OverlayPanel: NSPanel {
-    var onDismiss: (() -> Void)?
-    override var canBecomeKey: Bool { false }
-    override var canBecomeMain: Bool { false }
-    override func sendEvent(_ event: NSEvent) {
-        if event.type == .leftMouseDown || event.type == .rightMouseDown { onDismiss?() } else { super.sendEvent(event) }
+        p.dismiss()
     }
 }
 

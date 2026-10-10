@@ -111,6 +111,9 @@ cask "tiler" do
     Only that desktop on that display is tiled; everything else is left alone.
 
     Show every shortcut: Ctrl+Cmd+/   Settings: menu bar icon > Settings...
+    Move or resize any untiled window with the keyboard: Ctrl+Cmd+M, then arrows
+    (Shift resizes, Option = fine, C centre, M fill, Return done).
+    Upgrading from 0.2: Settings > General > Add Missing Shortcuts.
     Launch at login: Settings > General.
 
     Decks: https://biks2013.github.io/tiler/

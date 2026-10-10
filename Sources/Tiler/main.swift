@@ -4,6 +4,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let controller = Controller()
     private var menu: StatusMenu?
     private var overlay: ShortcutsOverlay?
+    private var moveResize: MoveResizeMode?
     private var settings: SettingsWindowController?
     private var permissionTimer: Timer?
 
@@ -11,11 +12,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.mainMenu = Self.mainMenu()
         let menu = StatusMenu(controller: controller)
         let overlay = ShortcutsOverlay(controller: controller)
+        let moveResize = MoveResizeMode(controller: controller)
         self.menu = menu
         self.overlay = overlay
-        menu.onShowShortcuts = { overlay.toggle() }
+        self.moveResize = moveResize
+        menu.onShowShortcuts = { moveResize.end(); overlay.toggle() }
+        menu.onMoveResize = { overlay.close(); moveResize.toggle() }
+        controller.onMoveResize = { overlay.close(); moveResize.toggle() }
         menu.onShowSettings = { [weak self] pane in self?.showSettings(pane) }
-        controller.onShowHotkeys = { overlay.toggle() }
+        controller.onShowHotkeys = { moveResize.end(); overlay.toggle() }
         controller.onShowSettings = { [weak self] in self?.showSettings(nil) }
         controller.onChange = { [weak self] in
             self?.menu?.refreshIcon()

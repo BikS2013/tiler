@@ -12,16 +12,18 @@ public enum Action: String, CaseIterable, Codable {
     case equalize
     case retile
     case showHotkeys
+    case moveResize
 
-    /// Only `toggleDesktop` and `showHotkeys` stay registered on desktops Tiler
-    /// does not tile; every other hotkey is released there so apps keep the key.
-    public var worksOnUntiledDesktop: Bool { self == .toggleDesktop || self == .showHotkeys }
+    /// `toggleDesktop`, `showHotkeys` and `moveResize` stay registered on desktops
+    /// Tiler does not tile; every other hotkey is released there so apps keep the key.
+    public var worksOnUntiledDesktop: Bool { self == .toggleDesktop || self == .showHotkeys || self == .moveResize }
 
     /// What the action does, as shown in the shortcuts overlay and Settings.
     public var title: String {
         switch self {
         case .toggleDesktop: return "Tile or untile this desktop"
         case .showHotkeys: return "Show keyboard shortcuts"
+        case .moveResize: return "Move or resize an untiled window"
         case .focusLeft: return "Focus left"
         case .focusRight: return "Focus right"
         case .focusUp: return "Focus up"
@@ -48,7 +50,7 @@ public enum Action: String, CaseIterable, Codable {
 
     public var group: Group {
         switch self {
-        case .toggleDesktop, .showHotkeys: return .general
+        case .toggleDesktop, .showHotkeys, .moveResize: return .general
         case .focusLeft, .focusRight, .focusUp, .focusDown: return .focus
         case .swapLeft, .swapRight, .swapUp, .swapDown: return .swap
         case .resizeLeft, .resizeRight, .resizeUp, .resizeDown: return .resize
@@ -245,6 +247,22 @@ public struct Config: Equatable {
         """
     }
 
+    /// The file text with every missing hotkey added from the template, for the
+    /// explicit "Add Missing Shortcuts" action in Settings after an upgrade adds
+    /// an action. Nothing else is touched, and the result is parsed before it is
+    /// returned, so any other error still surfaces.
+    public static func addingMissingHotkeys(to data: Data) throws -> (text: String, added: [Action]) {
+        guard var dict = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+              var keys = dict["hotkeys"] as? [String: String] else {
+            throw ConfigError.unreadable("the file has no readable \"hotkeys\" object")
+        }
+        let added = Action.allCases.filter { keys[$0.rawValue] == nil }
+        for action in added { keys[action.rawValue] = defaults.hotkeys[action]?.canonicalText ?? "none" }
+        dict["hotkeys"] = keys
+        let merged = try parse(try JSONSerialization.data(withJSONObject: dict))
+        return (merged.json(), added)
+    }
+
     public static let topLevelKeys: Set<String> = ["innerGap", "outerGap", "resizeStep", "floatingApps", "hotkeys"]
 
     public static func parse(_ data: Data) throws -> Config {
@@ -315,7 +333,8 @@ public struct Config: Equatable {
         "mirror": "ctrl+cmd+shift+j",
         "equalize": "ctrl+cmd+e",
         "retile": "ctrl+cmd+r",
-        "showHotkeys": "ctrl+cmd+/"
+        "showHotkeys": "ctrl+cmd+/",
+        "moveResize": "ctrl+cmd+m"
       }
     }
 

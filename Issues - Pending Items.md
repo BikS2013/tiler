@@ -23,7 +23,23 @@
 7. **Old `~/Library/Application Support/Tider/` folder** is left from before the rename (its
    `desktops.json` was copied to the `Tiler` folder). Safe to delete.
 
+8. **Floating state is not saved across restarts.** A window floated with `⌃⌘T` is tiled again
+   when Tiler restarts (seen 2026-10-10 while testing the move/resize mode after a reinstall).
+9. **Move/resize mode keeps a window on its display.** Moving a window to another display with
+   the keyboard is not supported (frames are clamped to the window's display).
+
 ## Completed
+
+- **2026-10-10 — Keyboard move/resize for untiled windows (0.3.0).** `⌃⌘M` mode
+  (`MoveResizeMode`, `WindowNudge`, `Hotkeys.borrow`). Checked live on a floated TextEdit window:
+  refusal on a tiled window, move 40 pt, ⌥ 8 pt, ⇧ resize, hold-to-repeat, M fill, Return and
+  ⌃⌘M end, arrows released afterwards. Test-tool note: synthetic arrow-key events must carry the
+  fn + numeric-pad flags real keyboards send, or Carbon does not match them.
+- **2026-10-10 — Upgrading made the config invalid.** Adding an action makes older files miss a
+  required key. Kept strict (no silent default) and added the explicit **Add Missing Shortcuts**
+  button in Settings (`Config.addingMissingHotkeys`); checked live: only `moveResize` was added.
+- **2026-10-10 — Move/resize hint showed "1.576 × 801"** (locale grouping) and an odd Esc glyph.
+  Now `Text(verbatim:)` and "esc".
 
 - **2026-10-10 — Renamed Tider → Tiler** (targets, bundle id `com.giorgosmarinos.tiler`, support
   folder, log subsystem, `TILER_SIGN_IDENTITY`, `scripts/tiler-ctl.sh`, Carbon signature `TLRR`).
@@ -49,6 +65,13 @@
   carry `needsLayout`, set on display changes and config reloads.
 
 ## Release log
+
+- **2026-10-10 — v0.3.0 (build 3).** Keyboard move/resize mode, Add Missing Shortcuts, MIT
+  license. `scripts/package.sh`: 27 tests passed; app and disk image `status: Accepted`, stapled,
+  `source=Notarized Developer ID`. Zip SHA-256
+  `4e042965f57064f39e310ac90ce6f4cd366c317a42117c26f4256a50f79195b1`, DMG
+  `3b4e479d0a5a61e2bd079e50ccc13424b28ea5840882e223924316d1ca9aeb04`. Installed over 0.2.0 on
+  this Mac: the Accessibility grant was kept (same Developer ID).
 
 - **2026-10-10 — v0.2.0 (build 1).** `scripts/package.sh` with Developer ID `2C7D6068…` and
   profile `tiler-notary`: 22 tests passed; app and disk image `status: Accepted`, stapled,

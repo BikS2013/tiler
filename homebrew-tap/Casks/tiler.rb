@@ -1,6 +1,6 @@
 cask "tiler" do
-  version "0.2.0"
-  sha256 "c3729a053a7b2873d8206baa86ffb039ddd48e27ebf0de7b179f93e412ce345f"
+  version "0.3.0"
+  sha256 "4e042965f57064f39e310ac90ce6f4cd366c317a42117c26f4256a50f79195b1"
 
   url "https://github.com/BikS2013/tiler/releases/download/v#{version}/Tiler-#{version}.zip"
   name "Tiler"
@@ -32,6 +32,9 @@ cask "tiler" do
     Only that desktop on that display is tiled; everything else is left alone.
 
     Show every shortcut: Ctrl+Cmd+/   Settings: menu bar icon > Settings...
+    Move or resize any untiled window with the keyboard: Ctrl+Cmd+M, then arrows
+    (Shift resizes, Option = fine, C centre, M fill, Return done).
+    Upgrading from 0.2: Settings > General > Add Missing Shortcuts.
     Launch at login: Settings > General.
 
     Decks: https://biks2013.github.io/tiler/

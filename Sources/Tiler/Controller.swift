@@ -19,6 +19,8 @@ final class Controller {
     var onChange: (() -> Void)?
     /// The shortcuts overlay hotkey was pressed.
     var onShowHotkeys: (() -> Void)?
+    /// The move/resize shortcut was pressed.
+    var onMoveResize: (() -> Void)?
     /// A second launch or `tiler-ctl.sh settings` asked for the Settings window.
     var onShowSettings: (() -> Void)?
     /// True while Settings records a shortcut: no hotkey is registered, so the
@@ -54,7 +56,7 @@ final class Controller {
     /// so Settings and `tiler-ctl.sh` work from the first launch.
     func prepare() {
         reloadConfig()
-        // Scripting hook: `scripts/tiler-ctl.sh toggle <display-uuid|active>`, `retile`, `reload`, `settings`, `shortcuts`, `dump`.
+        // Scripting hook: `scripts/tiler-ctl.sh toggle <display-uuid|active>`, `retile`, `reload`, `settings`, `shortcuts`, `moveresize`, `dump`.
         DistributedNotificationCenter.default().addObserver(forName: Notification.Name("com.giorgosmarinos.tiler.command"),
                                                             object: nil, queue: .main) { [weak self] n in
             self?.command(n.object as? String ?? "")
@@ -119,6 +121,8 @@ final class Controller {
             onShowSettings?()
         case "shortcuts":
             onShowHotkeys?()
+        case "moveresize":
+            onMoveResize?()
         case "dump":
             for d in desktops.values {
                 let visible = Spaces.current(onDisplay: d.key.displayUUID) == d.spaceID
@@ -154,8 +158,11 @@ final class Controller {
         onChange?()
     }
 
-    /// While set, Esc anywhere calls `handler` (the shortcuts overlay).
-    func captureEscape(_ handler: (() -> Void)?) { hotkeys.captureEscape(handler) }
+    /// Borrow plain keys while a transient UI is up (see `Hotkeys.borrow`).
+    func borrowKeys(_ keys: [(code: UInt32, modifiers: UInt32)], handler: @escaping (Int, Bool) -> Void) {
+        hotkeys.borrow(keys, handler: handler)
+    }
+    func releaseKeys() { hotkeys.release() }
 
     /// Write a configuration from Settings and apply it. The text is parsed
     /// before it replaces the file, so a bad value can never land on disk.
@@ -179,6 +186,9 @@ final class Controller {
     }
 
     // MARK: Desktops
+
+    /// True when a tiled desktop holds the window in its layout.
+    func isTiled(_ id: CGWindowID) -> Bool { desktops.values.contains { $0.tree.contains(id) } }
 
     /// The tiled desktop currently shown on the display, if any.
     func visibleDesktop(onDisplay uuid: String) -> Desktop? {
@@ -522,6 +532,9 @@ final class Controller {
         case .showHotkeys:
             onShowHotkeys?()
             return
+        case .moveResize:
+            onMoveResize?()
+            return
         default:
             break
         }
@@ -569,7 +582,7 @@ final class Controller {
             rechecked.removeAll()
             layout(d)
             reconcile()
-        case .toggleDesktop, .showHotkeys:
+        case .toggleDesktop, .showHotkeys, .moveResize:
             break
         }
     }

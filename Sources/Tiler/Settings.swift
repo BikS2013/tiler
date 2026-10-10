@@ -76,6 +76,24 @@ final class SettingsModel: ObservableObject {
         refresh()
     }
 
+    /// The file only lacks shortcuts a newer version added (an upgrade).
+    var onlyMissingShortcuts: Bool { configError?.contains("missing required key 'hotkeys.") == true }
+
+    /// Explicit, user-chosen fix after an upgrade: add the template binding for
+    /// each action the file lacks, leave everything else as it is.
+    func addMissingShortcuts() {
+        do {
+            let (text, added) = try Config.addingMissingHotkeys(to: Data(contentsOf: Controller.configURL))
+            try Data(text.utf8).write(to: Controller.configURL, options: .atomic)
+            log.info("added missing shortcuts: \(added.map(\.rawValue).joined(separator: ", "), privacy: .public)")
+            controller.reloadConfig()
+            saveError = nil
+        } catch {
+            saveError = (error as? ConfigError)?.description ?? error.localizedDescription
+        }
+        refresh()
+    }
+
     func restoreDefaultShortcuts() { update { $0.hotkeys = Config.defaults.hotkeys } }
 
     /// A mutable copy of `Config`.
@@ -171,7 +189,9 @@ private struct ConfigErrorBanner: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("The configuration file has an error").font(.headline)
                         Text(error).font(.callout).foregroundStyle(.secondary).textSelection(.enabled)
-                        Text("Fix the file and choose Reload, or restore the defaults. Settings can’t be edited until then.")
+                        Text(model.onlyMissingShortcuts
+                             ? "This version adds new shortcuts. Add Missing Shortcuts gives them their default keys and changes nothing else in the file."
+                             : "Fix the file and choose Reload, or restore the defaults. Settings can’t be edited until then.")
                             .font(.callout).foregroundStyle(.secondary)
                     }
                 } icon: {
@@ -181,6 +201,11 @@ private struct ConfigErrorBanner: View {
                     Button("Open in Editor") { NSWorkspace.shared.open(Controller.configURL) }
                     Button("Reload") { model.controller.reloadConfig(); model.refresh() }
                     Spacer()
+                    if model.onlyMissingShortcuts {
+                        Button("Add Missing Shortcuts") { model.addMissingShortcuts() }
+                            .keyboardShortcut(.defaultAction)
+                            .help("Adds the default key for each new action; nothing else in the file changes")
+                    }
                     Button("Restore Defaults") { model.restoreDefaults() }
                 }
             }
@@ -346,7 +371,7 @@ private struct ShortcutsPane: View {
                     Text(group.rawValue)
                 } footer: {
                     if group == .general {
-                        Footnote("These two work on every desktop. All other shortcuts work only while a tiled desktop has focus, so apps keep the same keys everywhere else.")
+                        Footnote("These work on every desktop. Move or resize acts on the focused window when Tiler is not tiling it: arrows move, ⇧ arrows resize, ⌥ for fine steps, C centres, M fills, Return or Esc ends. All other shortcuts work only while a tiled desktop has focus, so apps keep the same keys everywhere else.")
                     }
                 }
             }

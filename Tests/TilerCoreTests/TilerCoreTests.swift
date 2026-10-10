@@ -219,3 +219,61 @@ final class ConfigTests: XCTestCase {
         XCTAssertEqual(c.conflicts(c.hotkeys[.retile]!, for: .retile), [])
     }
 }
+
+final class WindowNudgeTests: XCTestCase {
+    let area = CGRect(x: 0, y: 30, width: 1000, height: 600)
+
+    func testMoveStaysInside() {
+        let f = CGRect(x: 10, y: 40, width: 300, height: 200)
+        XCTAssertEqual(WindowNudge.apply(.move(.right), to: f, in: area, step: 40), CGRect(x: 50, y: 40, width: 300, height: 200))
+        XCTAssertEqual(WindowNudge.apply(.move(.left), to: f, in: area, step: 40).minX, 0)
+        XCTAssertEqual(WindowNudge.apply(.move(.up), to: f, in: area, step: 40).minY, 30)
+        let atRight = CGRect(x: 690, y: 40, width: 300, height: 200)
+        XCTAssertEqual(WindowNudge.apply(.move(.right), to: atRight, in: area, step: 40).maxX, 1000)
+    }
+
+    func testResizeAnchorsTopLeftAndClamps() {
+        let f = CGRect(x: 100, y: 100, width: 300, height: 200)
+        XCTAssertEqual(WindowNudge.apply(.resize(.right), to: f, in: area, step: 40), CGRect(x: 100, y: 100, width: 340, height: 200))
+        XCTAssertEqual(WindowNudge.apply(.resize(.up), to: f, in: area, step: 40), CGRect(x: 100, y: 100, width: 300, height: 160))
+        let tiny = CGRect(x: 100, y: 100, width: 170, height: 110)
+        XCTAssertEqual(WindowNudge.apply(.resize(.left), to: tiny, in: area, step: 40).size, CGSize(width: 160, height: 110))
+        XCTAssertEqual(WindowNudge.apply(.resize(.up), to: tiny, in: area, step: 40).size, CGSize(width: 170, height: 100))
+        let wide = CGRect(x: 600, y: 100, width: 380, height: 200)
+        let grown = WindowNudge.apply(.resize(.right), to: wide, in: area, step: 40)
+        XCTAssertEqual(grown.maxX, 1000)
+        XCTAssertEqual(grown.width, 420)
+    }
+
+    func testCenterAndMaximize() {
+        let f = CGRect(x: 0, y: 30, width: 400, height: 200)
+        XCTAssertEqual(WindowNudge.apply(.center, to: f, in: area, step: 0), CGRect(x: 300, y: 230, width: 400, height: 200))
+        XCTAssertEqual(WindowNudge.apply(.maximize, to: f, in: area, step: 0), area)
+    }
+}
+
+final class ConfigUpgradeTests: XCTestCase {
+    func testMissingHotkeysAreAddedFromTheTemplate() throws {
+        var dict = try JSONSerialization.jsonObject(with: Data(Config.template.utf8)) as! [String: Any]
+        var keys = dict["hotkeys"] as! [String: String]
+        keys.removeValue(forKey: "moveResize")
+        keys["mirror"] = "none"
+        dict["hotkeys"] = keys
+        dict["innerGap"] = 12
+        let old = try JSONSerialization.data(withJSONObject: dict)
+        XCTAssertThrowsError(try Config.parse(old))
+        let (text, added) = try Config.addingMissingHotkeys(to: old)
+        XCTAssertEqual(added, [.moveResize])
+        let c = try Config.parse(Data(text.utf8))
+        XCTAssertEqual(c.innerGap, 12)
+        XCTAssertNil(c.hotkeys[.mirror])
+        XCTAssertEqual(c.hotkeys[.moveResize], try KeyCombo.parse("ctrl+cmd+m"))
+    }
+
+    func testOtherErrorsStillSurface() throws {
+        var dict = try JSONSerialization.jsonObject(with: Data(Config.template.utf8)) as! [String: Any]
+        dict.removeValue(forKey: "outerGap")
+        XCTAssertThrowsError(try Config.addingMissingHotkeys(to: try JSONSerialization.data(withJSONObject: dict)))
+    }
+}
+
