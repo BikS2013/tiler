@@ -2,6 +2,14 @@
 
 ## Pending
 
+- **Focus without raise may leave the key window behind (apps with several windows).** Focus
+  follows mouse on a tiled window partly covered by an untiled one activates the app without
+  raising (`focusWindowWithoutRaise`). The app becomes active, but in testing (TextEdit,
+  M365Mail) the hovered window did not always become the app's key window, so typing could go
+  to another window of the same app. Raised windows (nothing overlapping) are not affected. Next
+  step: find a key hand-over that is reliable without ordering the window (the yabai `0x0d`
+  window-activation record pair did not work on macOS 27 in testing).
+
 1. **Apps with a minimum size overlap their neighbour.** Tiler writes the tile size and accepts
    what the app does. Outlook refuses widths below 770 pt, so on the 1512 pt laptop display two
    tiles overlap by ~26 pt. A fix would read back the actual size after a write and shift the
@@ -37,6 +45,17 @@
     synthetic ⌘⌥ click would be taken as a drag. Not seen; noted 2026-10-10.
 
 ## Completed
+
+- **2026-10-11 — Focus follows mouse raised tiled windows over untiled ones.** Reported: moving
+  the mouse over a tiled window must not make it cover an untiled window. Cause: focus follows
+  mouse focused and raised (`AppHandle.focus`) the window under the pointer, which put a tiled
+  window above a floating window overlapping it. Fix (the user chose focus without raise over
+  not focusing): when an ordinary window above the target overlaps it, Tiler focuses it with
+  `focusWindowWithoutRaise` (`kCPSNoWindows` activation plus the make-key records); otherwise it
+  focuses and raises as before. Checked live with the no-raise activation: hovering the
+  uncovered parts of tiled Chrome and a tiled cmux window left a floating cmux window on top and
+  made the hovered app active; activation plus make-key kept the stacking order (M365Mail). The
+  final build (raise only when nothing overlaps) is installed but not yet exercised by hand.
 
 - **2026-10-10 — A new window split some other window, not the active one (0.8.1).** Reported:
   a new window should halve the window active at that moment. Causes: (1) new windows split

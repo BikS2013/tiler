@@ -43,13 +43,30 @@ func _SLPSSetFrontProcessWithOptions(_ psn: UnsafeMutablePointer<ProcessSerialNu
 @_silgen_name("SLPSPostEventRecordTo")
 func SLPSPostEventRecordTo(_ psn: UnsafeMutablePointer<ProcessSerialNumber>, _ bytes: UnsafeMutablePointer<UInt8>) -> CGError
 
+/// Give `wid` keyboard focus without changing the stacking order: the app is
+/// activated with no window brought forward (`kCPSNoWindows`), then `wid` is
+/// made its key window with the same event records `focusWindow` sends.
+/// Best effort for apps with several windows: some keep their previous key
+/// window.
+func focusWindowWithoutRaise(pid: pid_t, wid: CGWindowID) {
+    var psn = ProcessSerialNumber()
+    guard GetProcessForPID(pid, &psn) == noErr else { return }
+    let noWindows: UInt32 = 0x400
+    _ = _SLPSSetFrontProcessWithOptions(&psn, wid, noWindows)
+    postMakeKey(&psn, wid)
+}
+
 /// Bring the process to the front with `wid` as its key window.
 func focusWindow(pid: pid_t, wid: CGWindowID) {
     var psn = ProcessSerialNumber()
     guard GetProcessForPID(pid, &psn) == noErr else { return }
     let userGenerated: UInt32 = 0x200
     _ = _SLPSSetFrontProcessWithOptions(&psn, wid, userGenerated)
-    // Synthetic "make key window" event record (layout from yabai).
+    postMakeKey(&psn, wid)
+}
+
+/// Synthetic "make key window" event records (layout from yabai).
+private func postMakeKey(_ psn: inout ProcessSerialNumber, _ wid: CGWindowID) {
     var bytes = [UInt8](repeating: 0, count: 0xf8)
     bytes[0x04] = 0xf8
     bytes[0x3a] = 0x10

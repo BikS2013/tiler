@@ -214,6 +214,12 @@ nothing at rest and almost nothing in motion:
    skipping the cursor ("Window Server") and the Dock's full-screen overlay, decides. It is
    focused only if it is a layer-0 window the visible tiled desktop owns (tile or floating) and is
    not focused already; a menu, popover or panel on top blocks. The timer stops, the tap is on again.
+4. **Focus, with or without raise.** If no ordinary window above it overlaps the target, it is
+   focused and raised (`AppHandle.focus`). If one does (a floating or other untiled window: tiles
+   never overlap), it is focused **without** raising, so a tiled window never covers an untiled
+   one: `focusWindowWithoutRaise` activates the app with `kCPSNoWindows` (the stacking order is
+   untouched) and sends the make-key event records. In apps with several windows the key window
+   does not always follow (Pending item in the issue register).
 
 Measured on this Mac (synthetic mouse events at 80 Hz): 0 CPU idle; 0.015 s of CPU per 10 s of
 continuous motion (~0.15 % of a core). An `NSEvent` global monitor (one wake-up per event) cost

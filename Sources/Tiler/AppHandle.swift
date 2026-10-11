@@ -171,6 +171,11 @@ final class AppHandle {
         }
     }
 
+    /// Give the window keyboard focus and leave the stacking order alone.
+    func focusWithoutRaise(_ id: CGWindowID) {
+        thread.perform { [pid] in focusWindowWithoutRaise(pid: pid, wid: id) }
+    }
+
     /// Raise the window and give it keyboard focus.
     func focus(_ id: CGWindowID) {
         thread.perform { [self] in

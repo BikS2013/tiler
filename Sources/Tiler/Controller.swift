@@ -748,10 +748,16 @@ final class Controller {
         // similar system overlay: leave focus alone so it is not dismissed.
         if list.contains(where: { ($0[kCGWindowLayer as String] as? Int ?? 0) >= Int(CGWindowLevelForKey(.popUpMenuWindow))
                                   && $0[kCGWindowOwnerName as String] as? String != "Window Server" }) { return }
+        // Ordinary windows above the one under the pointer (front to back).
+        var above: [CGRect] = []
         for info in list {
             guard let b = info[kCGWindowBounds as String] as? NSDictionary,
-                  let bounds = CGRect(dictionaryRepresentation: b), bounds.contains(mouse),
+                  let bounds = CGRect(dictionaryRepresentation: b),
                   (info[kCGWindowAlpha as String] as? Double ?? 1) > 0 else { continue }
+            guard bounds.contains(mouse) else {
+                if info[kCGWindowLayer as String] as? Int == 0 { above.append(bounds) }
+                continue
+            }
             // The cursor and the Dock's full-screen window sit above everything.
             let owner = info[kCGWindowOwnerName as String] as? String
             if owner == "Window Server" || owner == "Dock" { continue }
@@ -760,7 +766,14 @@ final class Controller {
             guard info[kCGWindowLayer as String] as? Int == 0,
                   let id = info[kCGWindowNumber as String] as? CGWindowID,
                   d.owns(id), id != focused?.id else { return }
-            focus(id)
+            // A window partly covered by another (a floating or other untiled
+            // window: tiles never overlap) gets focus without being raised,
+            // so it never covers that window.
+            if above.contains(where: { $0.intersects(bounds.insetBy(dx: 1, dy: 1)) }) {
+                if let pid = facts[id]?.pid { apps[pid]?.focusWithoutRaise(id) }
+            } else {
+                focus(id)
+            }
             return
         }
     }
